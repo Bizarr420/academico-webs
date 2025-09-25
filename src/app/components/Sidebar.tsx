@@ -1,21 +1,23 @@
 import { NavLink } from 'react-router-dom';
 
-const linkBase = 'block px-3 py-2 rounded-lg hover:bg-gray-100';
+const linkBase = 'block px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors';
 const linkClassName = ({ isActive }: { isActive: boolean }) =>
-  isActive ? `${linkBase} bg-gray-200` : linkBase;
+  isActive ? `${linkBase} bg-gray-200 font-semibold` : `${linkBase} text-gray-700`;
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 h-screen sticky top-0 border-r bg-white p-4">
-      <div className="font-bold text-xl mb-6">Académico</div>
+    <aside className="w-64 h-screen sticky top-0 border-r bg-white p-4 flex flex-col gap-6">
+      <div className="font-bold text-xl">Académico</div>
       <nav className="space-y-1">
-        <NavLink to="/" className={linkClassName}>
+        <NavLink to="/" end className={linkClassName}>
           Dashboard
         </NavLink>
         <NavLink to="/estudiantes" className={linkClassName}>
           Estudiantes
         </NavLink>
-        {/* Agregar Docentes, Cursos, Materias, Calificaciones, Asistencia, Reportes, Alertas */}
+        <NavLink to="/docentes" className={linkClassName}>
+          Docentes
+        </NavLink>
       </nav>
     </aside>
   );

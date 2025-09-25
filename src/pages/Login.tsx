@@ -15,9 +15,17 @@ export default function Login() {
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
+
+    const trimmedUsername = username.trim();
+    const trimmedPassword = password.trim();
+    if (!trimmedUsername || !trimmedPassword) {
+      setError('Ingresa usuario y contraseña.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await login(username, password);
+      await login(trimmedUsername, trimmedPassword);
       navigate('/');
     } catch (err: unknown) {
       const message =
@@ -33,23 +41,41 @@ export default function Login() {
 
   return (
     <div className="min-h-screen grid place-items-center bg-gray-50 p-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm bg-white p-6 rounded-2xl shadow">
-        <h1 className="text-xl font-bold mb-4">Iniciar sesión</h1>
-        <label className="block text-sm mb-1">Usuario</label>
-        <input
-          className="w-full border rounded px-3 py-2 mb-3"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-        />
-        <label className="block text-sm mb-1">Contraseña</label>
-        <input
-          type="password"
-          className="w-full border rounded px-3 py-2 mb-4"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-        {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
-        <button disabled={loading} className="w-full py-2 rounded bg-gray-900 text-white">
+      <form onSubmit={onSubmit} className="w-full max-w-sm bg-white p-6 rounded-2xl shadow space-y-4">
+        <div>
+          <h1 className="text-xl font-bold">Iniciar sesión</h1>
+          <p className="text-sm text-gray-600">Administra la plataforma académica.</p>
+        </div>
+        <div>
+          <label className="block text-sm mb-1" htmlFor="login-username">
+            Usuario
+          </label>
+          <input
+            id="login-username"
+            className="w-full border rounded px-3 py-2"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            autoComplete="username"
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1" htmlFor="login-password">
+            Contraseña
+          </label>
+          <input
+            type="password"
+            id="login-password"
+            className="w-full border rounded px-3 py-2"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+          />
+        </div>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <button
+          disabled={loading}
+          className="w-full py-2 rounded bg-gray-900 text-white disabled:opacity-50"
+        >
           {loading ? 'Ingresando…' : 'Ingresar'}
         </button>
       </form>

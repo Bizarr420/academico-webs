@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import api from '@/app/services/api';
 import type { AuthResponse, User } from '@/app/types';
@@ -12,6 +13,7 @@ type AuthProviderProps = {
 
 export default function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const saved = localStorage.getItem('user');
@@ -25,18 +27,19 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = useCallback(async (username: string, password: string) => {
     const { data } = await api.post<AuthResponse>('/auth/login', { username, password });
     localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('user', JSON.stringify(data.user));
     setUser(data.user);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     setUser(null);
-  };
+    navigate('/login', { replace: true });
+  }, [navigate]);
 
   const value = useMemo(
     () => ({
@@ -45,7 +48,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       login,
       logout,
     }),
-    [user],
+    [login, logout, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
