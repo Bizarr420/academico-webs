@@ -28,7 +28,17 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    const { data } = await api.post<AuthResponse>('/auth/login', { username, password });
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+
+    const { data } = await api.post<AuthResponse>(
+      '/auth/login',
+      formData,
+      {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      },
+    );
     localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('user', JSON.stringify(data.user));
     setUser(data.user);
