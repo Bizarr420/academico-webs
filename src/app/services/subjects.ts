@@ -5,13 +5,21 @@ export const SUBJECTS_PAGE_SIZE = 10;
 
 export async function getSubjects(filters: SubjectFilters) {
   const { page, search, page_size = SUBJECTS_PAGE_SIZE, curso_id } = filters;
+  const params: Record<string, unknown> = {
+    page,
+    page_size,
+  };
+
+  if (typeof search === 'string' && search.trim().length > 0) {
+    params.search = search.trim();
+  }
+
+  if (typeof curso_id === 'number') {
+    params.curso_id = curso_id;
+  }
+
   const { data } = await api.get<Paginated<Subject>>('/subjects', {
-    params: {
-      page,
-      page_size,
-      search: search ?? '',
-      curso_id,
-    },
+    params,
   });
   return data;
 }

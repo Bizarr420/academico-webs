@@ -5,12 +5,17 @@ export const COURSES_PAGE_SIZE = 10;
 
 export async function getCourses(filters: CourseFilters) {
   const { page, search, page_size = COURSES_PAGE_SIZE } = filters;
+  const params: Record<string, unknown> = {
+    page,
+    page_size,
+  };
+
+  if (typeof search === 'string' && search.trim().length > 0) {
+    params.search = search.trim();
+  }
+
   const { data } = await api.get<Paginated<Course>>('/courses', {
-    params: {
-      page,
-      page_size,
-      search: search ?? '',
-    },
+    params,
   });
   return data;
 }
