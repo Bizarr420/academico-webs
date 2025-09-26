@@ -35,7 +35,7 @@ export default function StudentsList() {
 
   const students: Student[] = data?.items ?? [];
   const pageSize = data?.page_size ?? STUDENTS_PAGE_SIZE;
-  const isEmpty = !isLoading && students.length === 0;
+  const isEmpty = !isLoading && !isError && students.length === 0;
   const disablePrevious = page === 1 || isFetching;
   const disableNext = students.length < pageSize || isFetching;
 

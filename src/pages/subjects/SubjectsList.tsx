@@ -43,7 +43,7 @@ export default function SubjectsList() {
 
   const subjects: Subject[] = data?.items ?? [];
   const pageSize = data?.page_size ?? SUBJECTS_PAGE_SIZE;
-  const isEmpty = !isLoading && subjects.length === 0;
+  const isEmpty = !isLoading && !isError && subjects.length === 0;
   const disablePrevious = page === 1 || isFetching;
   const disableNext = subjects.length < pageSize || isFetching;
 
