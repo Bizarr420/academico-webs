@@ -15,8 +15,10 @@ const navItems = [
   { to: '/', label: 'Dashboard', roles: ['admin', 'docente', 'padre'] },
   { to: '/estudiantes', label: 'Estudiantes', roles: ['admin', 'docente'] },
   { to: '/docentes', label: 'Docentes', roles: ['admin'] },
+  { to: '/personas', label: 'Personas', roles: ['admin'] },
   { to: '/cursos', label: 'Cursos', roles: ['admin'] },
   { to: '/materias', label: 'Materias', roles: ['admin'] },
+  { to: '/usuarios', label: 'Usuarios', roles: ['admin'] },
 ];
 
 export default function Sidebar({ className = '', onNavigate }: SidebarProps) {

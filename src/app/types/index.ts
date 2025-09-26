@@ -56,6 +56,27 @@ export interface StudentPayload {
 
 export type StudentFilters = PaginationFilters;
 
+export interface Person {
+  id: number;
+  ci: string | null;
+  nombres: string;
+  apellidos: string;
+  direccion?: string | null;
+  telefono?: string | null;
+  correo?: string | null;
+}
+
+export interface PersonPayload {
+  ci: string;
+  nombres: string;
+  apellidos: string;
+  direccion?: string;
+  telefono?: string;
+  correo?: string;
+}
+
+export type PersonFilters = PaginationFilters;
+
 export interface TeacherSubject {
   id: number;
   nombre: string;
@@ -112,4 +133,30 @@ export interface SubjectPayload {
 
 export interface SubjectFilters extends PaginationFilters {
   curso_id?: number;
+}
+
+export interface ManagedUser {
+  id: number;
+  username: string;
+  name?: string | null;
+  email?: string | null;
+  role: Role;
+  persona?: Person | null;
+  persona_id?: number | null;
+}
+
+export interface ApiManagedUser extends Omit<ManagedUser, 'role'> {
+  role: ApiRole;
+}
+
+export interface UserPayload {
+  username: string;
+  role: Role;
+  persona_id: number;
+  email?: string;
+  password?: string;
+}
+
+export interface UserFilters extends PaginationFilters {
+  role?: Role;
 }
