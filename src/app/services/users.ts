@@ -9,6 +9,8 @@ import type {
 
 export const USERS_PAGE_SIZE = 10;
 
+const USERS_ENDPOINT = '/usuarios';
+
 const normalizeRole = (role: ApiManagedUser['role'] | ManagedUser['role'] | string): ManagedUser['role'] => {
   const normalized = `${role}`.toLowerCase();
   if (normalized === 'admin' || normalized === 'administrador') {
@@ -44,7 +46,7 @@ export async function getUsers(filters: UserFilters) {
     params.role = role;
   }
 
-  const { data } = await api.get<Paginated<ApiManagedUser>>('/users', {
+  const { data } = await api.get<Paginated<ApiManagedUser>>(USERS_ENDPOINT, {
     params,
   });
   return {
@@ -54,12 +56,12 @@ export async function getUsers(filters: UserFilters) {
 }
 
 export async function getUser(id: number) {
-  const { data } = await api.get<ApiManagedUser>(`/users/${id}`);
+  const { data } = await api.get<ApiManagedUser>(`${USERS_ENDPOINT}/${id}`);
   return mapUser(data);
 }
 
 export async function createUser(payload: UserPayload) {
-  const { data } = await api.post<ApiManagedUser>('/users', payload);
+  const { data } = await api.post<ApiManagedUser>(USERS_ENDPOINT, payload);
   return mapUser(data);
 }
 
@@ -78,10 +80,10 @@ export async function updateUser(id: number, payload: UserPayload) {
     body.password = payload.password;
   }
 
-  const { data } = await api.put<ApiManagedUser>(`/users/${id}`, body);
+  const { data } = await api.patch<ApiManagedUser>(`${USERS_ENDPOINT}/${id}`, body);
   return mapUser(data);
 }
 
 export async function deleteUser(id: number) {
-  await api.delete(`/users/${id}`);
+  await api.delete(`${USERS_ENDPOINT}/${id}`);
 }

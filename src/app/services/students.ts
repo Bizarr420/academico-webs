@@ -3,6 +3,8 @@ import type { Paginated, Student, StudentFilters, StudentPayload } from '@/app/t
 
 export const STUDENTS_PAGE_SIZE = 10;
 
+const STUDENTS_ENDPOINT = '/estudiantes';
+
 export async function getStudents(filters: StudentFilters) {
   const { page, search, page_size = STUDENTS_PAGE_SIZE } = filters;
   const params: Record<string, unknown> = {
@@ -14,27 +16,27 @@ export async function getStudents(filters: StudentFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<Student>>('/students', {
+  const { data } = await api.get<Paginated<Student>>(STUDENTS_ENDPOINT, {
     params,
   });
   return data;
 }
 
 export async function createStudent(payload: StudentPayload) {
-  const { data } = await api.post<Student>('/students', payload);
+  const { data } = await api.post<Student>(STUDENTS_ENDPOINT, payload);
   return data;
 }
 
 export async function getStudent(id: number) {
-  const { data } = await api.get<Student>(`/students/${id}`);
+  const { data } = await api.get<Student>(`${STUDENTS_ENDPOINT}/${id}`);
   return data;
 }
 
 export async function updateStudent(id: number, payload: StudentPayload) {
-  const { data } = await api.put<Student>(`/students/${id}`, payload);
+  const { data } = await api.put<Student>(`${STUDENTS_ENDPOINT}/${id}`, payload);
   return data;
 }
 
 export async function deleteStudent(id: number) {
-  await api.delete(`/students/${id}`);
+  await api.delete(`${STUDENTS_ENDPOINT}/${id}`);
 }

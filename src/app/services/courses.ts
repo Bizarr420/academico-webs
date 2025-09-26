@@ -3,6 +3,8 @@ import type { Course, CourseFilters, CoursePayload, Paginated } from '@/app/type
 
 export const COURSES_PAGE_SIZE = 10;
 
+const COURSES_ENDPOINT = '/cursos';
+
 export async function getCourses(filters: CourseFilters) {
   const { page, search, page_size = COURSES_PAGE_SIZE } = filters;
   const params: Record<string, unknown> = {
@@ -14,33 +16,33 @@ export async function getCourses(filters: CourseFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<Course>>('/courses', {
+  const { data } = await api.get<Paginated<Course>>(COURSES_ENDPOINT, {
     params,
   });
   return data;
 }
 
 export async function getCourse(id: number) {
-  const { data } = await api.get<Course>(`/courses/${id}`);
+  const { data } = await api.get<Course>(`${COURSES_ENDPOINT}/${id}`);
   return data;
 }
 
 export async function createCourse(payload: CoursePayload) {
-  const { data } = await api.post<Course>('/courses', payload);
+  const { data } = await api.post<Course>(COURSES_ENDPOINT, payload);
   return data;
 }
 
 export async function updateCourse(id: number, payload: CoursePayload) {
-  const { data } = await api.put<Course>(`/courses/${id}`, payload);
+  const { data } = await api.put<Course>(`${COURSES_ENDPOINT}/${id}`, payload);
   return data;
 }
 
 export async function deleteCourse(id: number) {
-  await api.delete(`/courses/${id}`);
+  await api.delete(`${COURSES_ENDPOINT}/${id}`);
 }
 
 export async function getAllCourses() {
-  const { data } = await api.get<Paginated<Course>>('/courses', {
+  const { data } = await api.get<Paginated<Course>>(COURSES_ENDPOINT, {
     params: {
       page: 1,
       page_size: 1000,

@@ -3,6 +3,8 @@ import type { Paginated, Subject, SubjectFilters, SubjectPayload } from '@/app/t
 
 export const SUBJECTS_PAGE_SIZE = 10;
 
+const SUBJECTS_ENDPOINT = '/materias';
+
 export async function getSubjects(filters: SubjectFilters) {
   const { page, search, page_size = SUBJECTS_PAGE_SIZE, curso_id } = filters;
   const params: Record<string, unknown> = {
@@ -18,33 +20,33 @@ export async function getSubjects(filters: SubjectFilters) {
     params.curso_id = curso_id;
   }
 
-  const { data } = await api.get<Paginated<Subject>>('/subjects', {
+  const { data } = await api.get<Paginated<Subject>>(SUBJECTS_ENDPOINT, {
     params,
   });
   return data;
 }
 
 export async function getSubject(id: number) {
-  const { data } = await api.get<Subject>(`/subjects/${id}`);
+  const { data } = await api.get<Subject>(`${SUBJECTS_ENDPOINT}/${id}`);
   return data;
 }
 
 export async function createSubject(payload: SubjectPayload) {
-  const { data } = await api.post<Subject>('/subjects', payload);
+  const { data } = await api.post<Subject>(SUBJECTS_ENDPOINT, payload);
   return data;
 }
 
 export async function updateSubject(id: number, payload: SubjectPayload) {
-  const { data } = await api.put<Subject>(`/subjects/${id}`, payload);
+  const { data } = await api.put<Subject>(`${SUBJECTS_ENDPOINT}/${id}`, payload);
   return data;
 }
 
 export async function deleteSubject(id: number) {
-  await api.delete(`/subjects/${id}`);
+  await api.delete(`${SUBJECTS_ENDPOINT}/${id}`);
 }
 
 export async function getAllSubjects() {
-  const { data } = await api.get<Paginated<Subject>>('/subjects', {
+  const { data } = await api.get<Paginated<Subject>>(SUBJECTS_ENDPOINT, {
     params: {
       page: 1,
       page_size: 1000,
