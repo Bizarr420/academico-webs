@@ -3,6 +3,8 @@ import type { Paginated, Teacher, TeacherFilters, TeacherPayload } from '@/app/t
 
 export const TEACHERS_PAGE_SIZE = 10;
 
+const TEACHERS_ENDPOINT = '/docentes';
+
 export async function getTeachers(filters: TeacherFilters) {
   const { page, search, page_size = TEACHERS_PAGE_SIZE } = filters;
   const params: Record<string, unknown> = {
@@ -14,27 +16,27 @@ export async function getTeachers(filters: TeacherFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<Teacher>>('/teachers', {
+  const { data } = await api.get<Paginated<Teacher>>(TEACHERS_ENDPOINT, {
     params,
   });
   return data;
 }
 
 export async function createTeacher(payload: TeacherPayload) {
-  const { data } = await api.post<Teacher>('/teachers', payload);
+  const { data } = await api.post<Teacher>(TEACHERS_ENDPOINT, payload);
   return data;
 }
 
 export async function getTeacher(id: number) {
-  const { data } = await api.get<Teacher>(`/teachers/${id}`);
+  const { data } = await api.get<Teacher>(`${TEACHERS_ENDPOINT}/${id}`);
   return data;
 }
 
 export async function updateTeacher(id: number, payload: TeacherPayload) {
-  const { data } = await api.put<Teacher>(`/teachers/${id}`, payload);
+  const { data } = await api.patch<Teacher>(`${TEACHERS_ENDPOINT}/${id}`, payload);
   return data;
 }
 
 export async function deleteTeacher(id: number) {
-  await api.delete(`/teachers/${id}`);
+  await api.delete(`${TEACHERS_ENDPOINT}/${id}`);
 }
