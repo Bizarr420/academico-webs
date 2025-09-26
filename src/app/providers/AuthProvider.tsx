@@ -23,8 +23,8 @@ const normalizeRole = (role: ApiUser['role'] | Role | string): Role => {
     return 'padre';
   }
 
-  console.warn(`Rol desconocido recibido: ${role}. Se usará "docente" por defecto.`);
-  return 'docente';
+  console.warn(`Rol desconocido recibido: ${role}. Se usará "admin" por defecto.`);
+  return 'admin';
 };
 
 const normalizeUser = (user: ApiUser | User): User => {
