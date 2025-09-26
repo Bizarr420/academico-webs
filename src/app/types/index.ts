@@ -56,14 +56,34 @@ export interface StudentPayload {
 
 export type StudentFilters = PaginationFilters;
 
+export interface ApiPerson {
+  id: number;
+  nombres: string;
+  apellidos: string;
+  sexo?: string | null;
+  fecha_nacimiento?: string | null;
+  celular?: string | null;
+  direccion?: string | null;
+  ci_numero?: string | null;
+  ci_complemento?: string | null;
+  ci_expedicion?: string | null;
+  correo?: string | null;
+}
+
 export interface Person {
   id: number;
-  ci: string | null;
   nombres: string;
   apellidos: string;
   direccion?: string | null;
   telefono?: string | null;
   correo?: string | null;
+  ci?: string | null;
+  sexo?: string | null;
+  fecha_nacimiento?: string | null;
+  celular?: string | null;
+  ci_numero?: string | null;
+  ci_complemento?: string | null;
+  ci_expedicion?: string | null;
 }
 
 export interface PersonPayload {
@@ -73,6 +93,12 @@ export interface PersonPayload {
   direccion?: string;
   telefono?: string;
   correo?: string;
+  sexo?: string;
+  fecha_nacimiento?: string;
+  ci_complemento?: string;
+  ci_expedicion?: string;
+  ci_numero?: string;
+  celular?: string;
 }
 
 export type PersonFilters = PaginationFilters;
