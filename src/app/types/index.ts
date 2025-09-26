@@ -97,7 +97,7 @@ export interface PersonPayload {
   apellidos: string;
   sexo: Sexo;
   fecha_nacimiento: string;
-  celular?: string;
+  celular: string;
   direccion?: string;
   ci_numero?: string;
   ci_complemento?: string;
