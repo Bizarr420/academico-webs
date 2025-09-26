@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
-import { getTeachers, TEACHERS_PAGE_SIZE } from '@/app/services/teachers';
+import { deleteTeacher, getTeachers, TEACHERS_PAGE_SIZE } from '@/app/services/teachers';
 import type { Teacher } from '@/app/types';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -11,6 +11,7 @@ export default function TeachersList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -37,6 +38,21 @@ export default function TeachersList() {
   const isEmpty = !isLoading && teachers.length === 0;
   const disablePrevious = page === 1 || isFetching;
   const disableNext = teachers.length < pageSize || isFetching;
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => deleteTeacher(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teachers'] });
+    },
+  });
+
+  const handleDelete = (id: number) => {
+    const confirmed = window.confirm('¿Deseas eliminar este docente?');
+    if (!confirmed) {
+      return;
+    }
+    deleteMutation.mutate(id);
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow p-4">
@@ -73,6 +89,8 @@ export default function TeachersList() {
                 <th className="py-2">CI</th>
                 <th>Nombre</th>
                 <th>Especialidad</th>
+                <th>Materias</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -83,10 +101,37 @@ export default function TeachersList() {
                     {teacher.apellidos} {teacher.nombres}
                   </td>
                   <td>{teacher.especialidad || '-'}</td>
+                  <td>
+                    {teacher.materias && teacher.materias.length > 0
+                      ? teacher.materias.map((subject) => subject.nombre).join(', ')
+                      : '-'}
+                  </td>
+                  <td>
+                    <div className="flex gap-2">
+                      <Link
+                        to={`/docentes/${teacher.id}/editar`}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Editar
+                      </Link>
+                      <button
+                        type="button"
+                        className="text-sm text-red-600 hover:underline"
+                        onClick={() => handleDelete(teacher.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
+          {deleteMutation.isError && (
+            <p className="text-sm text-red-600 mt-2">No se pudo eliminar el docente.</p>
+          )}
 
           <div className="flex items-center gap-2 justify-end mt-4">
             <button

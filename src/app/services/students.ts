@@ -19,3 +19,17 @@ export async function createStudent(payload: StudentPayload) {
   const { data } = await api.post<Student>('/students', payload);
   return data;
 }
+
+export async function getStudent(id: number) {
+  const { data } = await api.get<Student>(`/students/${id}`);
+  return data;
+}
+
+export async function updateStudent(id: number, payload: StudentPayload) {
+  const { data } = await api.put<Student>(`/students/${id}`, payload);
+  return data;
+}
+
+export async function deleteStudent(id: number) {
+  await api.delete(`/students/${id}`);
+}

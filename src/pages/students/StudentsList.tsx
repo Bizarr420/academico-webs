@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
-import { getStudents, STUDENTS_PAGE_SIZE } from '@/app/services/students';
+import { deleteStudent, getStudents, STUDENTS_PAGE_SIZE } from '@/app/services/students';
 import type { Student } from '@/app/types';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -11,6 +11,7 @@ export default function StudentsList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -37,6 +38,21 @@ export default function StudentsList() {
   const isEmpty = !isLoading && students.length === 0;
   const disablePrevious = page === 1 || isFetching;
   const disableNext = students.length < pageSize || isFetching;
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => deleteStudent(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+  });
+
+  const handleDelete = (id: number) => {
+    const confirmed = window.confirm('¿Deseas eliminar este estudiante?');
+    if (!confirmed) {
+      return;
+    }
+    deleteMutation.mutate(id);
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow p-4">
@@ -73,6 +89,7 @@ export default function StudentsList() {
                 <th className="py-2">CI</th>
                 <th>Nombre</th>
                 <th>Curso</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -83,10 +100,32 @@ export default function StudentsList() {
                     {student.apellidos} {student.nombres}
                   </td>
                   <td>{student.curso || '-'}</td>
+                  <td>
+                    <div className="flex gap-2">
+                      <Link
+                        to={`/estudiantes/${student.id}/editar`}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Editar
+                      </Link>
+                      <button
+                        type="button"
+                        className="text-sm text-red-600 hover:underline"
+                        onClick={() => handleDelete(student.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
+          {deleteMutation.isError && (
+            <p className="text-sm text-red-600 mt-2">No se pudo eliminar el estudiante.</p>
+          )}
 
           <div className="flex items-center gap-2 justify-end mt-4">
             <button

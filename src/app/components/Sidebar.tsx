@@ -18,6 +18,12 @@ export default function Sidebar() {
         <NavLink to="/docentes" className={linkClassName}>
           Docentes
         </NavLink>
+        <NavLink to="/cursos" className={linkClassName}>
+          Cursos
+        </NavLink>
+        <NavLink to="/materias" className={linkClassName}>
+          Materias
+        </NavLink>
       </nav>
     </aside>
   );
