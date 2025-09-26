@@ -5,37 +5,29 @@ export const PEOPLE_PAGE_SIZE = 10;
 
 const PEOPLE_ENDPOINT = '/personas';
 
-const mapPerson = (person: ApiPerson): Person => {
-  const celular = person.celular ?? null;
-  const ciNumero = person.ci_numero ?? null;
-
-  return {
-    id: person.id,
-    nombres: person.nombres,
-    apellidos: person.apellidos,
-    direccion: person.direccion ?? null,
-    telefono: celular,
-    correo: person.correo ?? null,
-    ci: ciNumero,
-    sexo: person.sexo ?? null,
-    fecha_nacimiento: person.fecha_nacimiento ?? null,
-    celular,
-    ci_numero: ciNumero,
-    ci_complemento: person.ci_complemento ?? null,
-    ci_expedicion: person.ci_expedicion ?? null,
-  };
-};
+const mapPerson = (person: ApiPerson): Person => ({
+  id: person.id,
+  nombres: person.nombres,
+  apellidos: person.apellidos,
+  sexo: person.sexo ?? null,
+  fecha_nacimiento: person.fecha_nacimiento ?? null,
+  celular: person.celular ?? null,
+  direccion: person.direccion ?? null,
+  ci_numero: person.ci_numero ?? null,
+  ci_complemento: person.ci_complemento ?? null,
+  ci_expedicion: person.ci_expedicion ?? null,
+  correo: person.correo ?? null,
+});
 
 const mapPayloadToApi = (payload: PersonPayload) => {
   const body: Record<string, unknown> = {
     nombres: payload.nombres,
     apellidos: payload.apellidos,
-    direccion: payload.direccion,
-    celular: payload.celular ?? payload.telefono,
-    correo: payload.correo,
     sexo: payload.sexo,
     fecha_nacimiento: payload.fecha_nacimiento,
-    ci_numero: payload.ci_numero ?? payload.ci,
+    celular: payload.celular,
+    direccion: payload.direccion,
+    ci_numero: payload.ci_numero,
     ci_complemento: payload.ci_complemento,
     ci_expedicion: payload.ci_expedicion,
   };

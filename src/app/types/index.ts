@@ -74,31 +74,26 @@ export interface Person {
   id: number;
   nombres: string;
   apellidos: string;
-  direccion?: string | null;
-  telefono?: string | null;
+  sexo: string | null;
+  fecha_nacimiento: string | null;
+  celular: string | null;
+  direccion: string | null;
+  ci_numero: string | null;
+  ci_complemento: string | null;
+  ci_expedicion: string | null;
   correo?: string | null;
-  ci?: string | null;
-  sexo?: string | null;
-  fecha_nacimiento?: string | null;
-  celular?: string | null;
-  ci_numero?: string | null;
-  ci_complemento?: string | null;
-  ci_expedicion?: string | null;
 }
 
 export interface PersonPayload {
-  ci: string;
   nombres: string;
   apellidos: string;
+  sexo: string;
+  fecha_nacimiento: string;
+  celular?: string;
   direccion?: string;
-  telefono?: string;
-  correo?: string;
-  sexo?: string;
-  fecha_nacimiento?: string;
+  ci_numero?: string;
   ci_complemento?: string;
   ci_expedicion?: string;
-  ci_numero?: string;
-  celular?: string;
 }
 
 export type PersonFilters = PaginationFilters;

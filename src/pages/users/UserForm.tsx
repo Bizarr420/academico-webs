@@ -223,7 +223,8 @@ export default function UserForm() {
             <option value="">Selecciona una persona…</option>
             {peopleOptions.map((person) => (
               <option key={person.id} value={person.id}>
-                {`${person.apellidos} ${person.nombres}`.trim()} {person.ci ? `• ${person.ci}` : ''}
+                {`${person.apellidos} ${person.nombres}`.trim()}{' '}
+                {person.ci_numero ? `• ${person.ci_numero}` : ''}
               </option>
             ))}
           </select>

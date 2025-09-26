@@ -7,33 +7,51 @@ import { z } from 'zod';
 import { createPerson, getPerson, updatePerson } from '@/app/services/people';
 import type { PersonPayload } from '@/app/types';
 
+const SEX_OPTIONS = ['M', 'F', 'X'] as const;
+
 const personSchema = z.object({
-  ci: z.string().min(5, 'La cédula debe tener al menos 5 caracteres').max(20, 'Máximo 20 caracteres'),
-  nombres: z.string().min(2, 'Ingresa los nombres'),
-  apellidos: z.string().min(2, 'Ingresa los apellidos'),
-  direccion: z.string().min(3, 'Ingresa la dirección').optional(),
-  telefono: z.string().min(6, 'Ingresa un teléfono válido').max(20, 'Máximo 20 caracteres').optional(),
-  correo: z.string().email('Ingresa un correo válido').optional(),
+  nombres: z.string().min(1, 'Ingresa los nombres').max(120, 'Máximo 120 caracteres'),
+  apellidos: z.string().min(1, 'Ingresa los apellidos').max(120, 'Máximo 120 caracteres'),
+  sexo: z
+    .string()
+    .min(1, 'Selecciona un sexo válido')
+    .refine((value) => SEX_OPTIONS.includes(value as (typeof SEX_OPTIONS)[number]), {
+      message: 'Selecciona un sexo válido',
+    }),
+  fecha_nacimiento: z
+    .string()
+    .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/u, 'Ingresa una fecha válida (YYYY-MM-DD)'),
+  celular: z.string().max(20, 'Máximo 20 caracteres').optional(),
+  direccion: z.string().max(255, 'Máximo 255 caracteres').optional(),
+  ci_numero: z.string().max(20, 'Máximo 20 caracteres').optional(),
+  ci_complemento: z.string().max(5, 'Máximo 5 caracteres').optional(),
+  ci_expedicion: z.string().max(5, 'Máximo 5 caracteres').optional(),
 });
 
 type PersonFormState = {
-  ci: string;
   nombres: string;
   apellidos: string;
+  sexo: string;
+  fecha_nacimiento: string;
+  celular: string;
   direccion: string;
-  telefono: string;
-  correo: string;
+  ci_numero: string;
+  ci_complemento: string;
+  ci_expedicion: string;
 };
 
 type FieldErrors = Partial<Record<keyof PersonFormState, string>>;
 
 const initialValues: PersonFormState = {
-  ci: '',
   nombres: '',
   apellidos: '',
+  sexo: '',
+  fecha_nacimiento: '',
+  celular: '',
   direccion: '',
-  telefono: '',
-  correo: '',
+  ci_numero: '',
+  ci_complemento: '',
+  ci_expedicion: '',
 };
 
 export default function PersonForm() {
@@ -53,13 +71,17 @@ export default function PersonForm() {
 
   useEffect(() => {
     if (personQuery.data) {
+      const fechaNacimiento = personQuery.data.fecha_nacimiento ?? '';
       setForm({
-        ci: personQuery.data.ci ?? '',
         nombres: personQuery.data.nombres,
         apellidos: personQuery.data.apellidos,
+        sexo: personQuery.data.sexo ?? '',
+        fecha_nacimiento: fechaNacimiento ? fechaNacimiento.slice(0, 10) : '',
+        celular: personQuery.data.celular ?? '',
         direccion: personQuery.data.direccion ?? '',
-        telefono: personQuery.data.telefono ?? '',
-        correo: personQuery.data.correo ?? '',
+        ci_numero: personQuery.data.ci_numero ?? '',
+        ci_complemento: personQuery.data.ci_complemento ?? '',
+        ci_expedicion: personQuery.data.ci_expedicion ?? '',
       });
     }
   }, [personQuery.data]);
@@ -88,13 +110,20 @@ export default function PersonForm() {
     event.preventDefault();
     setSubmitError('');
 
-    const result = personSchema.safeParse({
-      ci: form.ci.trim(),
+    const trimmed = {
       nombres: form.nombres.trim(),
       apellidos: form.apellidos.trim(),
+      sexo: form.sexo.trim(),
+      fecha_nacimiento: form.fecha_nacimiento,
+      celular: form.celular.trim() || undefined,
       direccion: form.direccion.trim() || undefined,
-      telefono: form.telefono.trim() || undefined,
-      correo: form.correo.trim() || undefined,
+      ci_numero: form.ci_numero.trim() || undefined,
+      ci_complemento: form.ci_complemento.trim() || undefined,
+      ci_expedicion: form.ci_expedicion.trim() || undefined,
+    };
+
+    const result = personSchema.safeParse({
+      ...trimmed,
     });
 
     if (!result.success) {
@@ -141,32 +170,6 @@ export default function PersonForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-600" htmlFor="person-ci">
-              CI
-            </label>
-            <input
-              id="person-ci"
-              className="w-full border rounded px-3 py-2"
-              value={form.ci}
-              onChange={(event) => updateField('ci')(event.target.value)}
-            />
-            {fieldErrors.ci && <p className="text-sm text-red-600 mt-1">{fieldErrors.ci}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600" htmlFor="person-telefono">
-              Teléfono
-            </label>
-            <input
-              id="person-telefono"
-              className="w-full border rounded px-3 py-2"
-              value={form.telefono}
-              onChange={(event) => updateField('telefono')(event.target.value)}
-            />
-            {fieldErrors.telefono && <p className="text-sm text-red-600 mt-1">{fieldErrors.telefono}</p>}
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
             <label className="block text-sm font-medium text-gray-600" htmlFor="person-nombres">
               Nombres
             </label>
@@ -193,16 +196,55 @@ export default function PersonForm() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-600" htmlFor="person-correo">
-              Correo electrónico
+            <label className="block text-sm font-medium text-gray-600" htmlFor="person-sexo">
+              Sexo
+            </label>
+            <select
+              id="person-sexo"
+              className="w-full border rounded px-3 py-2"
+              value={form.sexo}
+              onChange={(event) => updateField('sexo')(event.target.value)}
+            >
+              <option value="">Selecciona…</option>
+              {SEX_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option === 'M' ? 'Masculino' : option === 'F' ? 'Femenino' : 'Otro'}
+                </option>
+              ))}
+            </select>
+            {fieldErrors.sexo && <p className="text-sm text-red-600 mt-1">{fieldErrors.sexo}</p>}
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium text-gray-600"
+              htmlFor="person-fecha-nacimiento"
+            >
+              Fecha de nacimiento
             </label>
             <input
-              id="person-correo"
+              type="date"
+              id="person-fecha-nacimiento"
               className="w-full border rounded px-3 py-2"
-              value={form.correo}
-              onChange={(event) => updateField('correo')(event.target.value)}
+              value={form.fecha_nacimiento}
+              onChange={(event) => updateField('fecha_nacimiento')(event.target.value)}
             />
-            {fieldErrors.correo && <p className="text-sm text-red-600 mt-1">{fieldErrors.correo}</p>}
+            {fieldErrors.fecha_nacimiento && (
+              <p className="text-sm text-red-600 mt-1">{fieldErrors.fecha_nacimiento}</p>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-600" htmlFor="person-celular">
+              Celular
+            </label>
+            <input
+              id="person-celular"
+              className="w-full border rounded px-3 py-2"
+              value={form.celular}
+              onChange={(event) => updateField('celular')(event.target.value)}
+            />
+            {fieldErrors.celular && <p className="text-sm text-red-600 mt-1">{fieldErrors.celular}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600" htmlFor="person-direccion">
@@ -215,6 +257,54 @@ export default function PersonForm() {
               onChange={(event) => updateField('direccion')(event.target.value)}
             />
             {fieldErrors.direccion && <p className="text-sm text-red-600 mt-1">{fieldErrors.direccion}</p>}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-600" htmlFor="person-ci-numero">
+              Número de CI
+            </label>
+            <input
+              id="person-ci-numero"
+              className="w-full border rounded px-3 py-2"
+              value={form.ci_numero}
+              onChange={(event) => updateField('ci_numero')(event.target.value)}
+            />
+            {fieldErrors.ci_numero && <p className="text-sm text-red-600 mt-1">{fieldErrors.ci_numero}</p>}
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium text-gray-600"
+              htmlFor="person-ci-complemento"
+            >
+              Complemento
+            </label>
+            <input
+              id="person-ci-complemento"
+              className="w-full border rounded px-3 py-2"
+              value={form.ci_complemento}
+              onChange={(event) => updateField('ci_complemento')(event.target.value)}
+            />
+            {fieldErrors.ci_complemento && (
+              <p className="text-sm text-red-600 mt-1">{fieldErrors.ci_complemento}</p>
+            )}
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium text-gray-600"
+              htmlFor="person-ci-expedicion"
+            >
+              Expedición
+            </label>
+            <input
+              id="person-ci-expedicion"
+              className="w-full border rounded px-3 py-2"
+              value={form.ci_expedicion}
+              onChange={(event) => updateField('ci_expedicion')(event.target.value)}
+            />
+            {fieldErrors.ci_expedicion && (
+              <p className="text-sm text-red-600 mt-1">{fieldErrors.ci_expedicion}</p>
+            )}
           </div>
         </div>
         {submitError && <p className="text-red-600 text-sm">{submitError}</p>}
