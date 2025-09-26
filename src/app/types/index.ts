@@ -56,11 +56,19 @@ export interface StudentPayload {
 
 export type StudentFilters = PaginationFilters;
 
+export const SEX_CODES = ['M', 'F', 'X'] as const;
+export type Sexo = (typeof SEX_CODES)[number];
+export const SEX_LABELS: Record<Sexo, string> = {
+  M: 'Masculino',
+  F: 'Femenino',
+  X: 'Otro',
+};
+
 export interface ApiPerson {
   id: number;
   nombres: string;
   apellidos: string;
-  sexo?: string | null;
+  sexo?: Sexo | null;
   fecha_nacimiento?: string | null;
   celular?: string | null;
   direccion?: string | null;
@@ -74,7 +82,7 @@ export interface Person {
   id: number;
   nombres: string;
   apellidos: string;
-  sexo: string | null;
+  sexo: Sexo | null;
   fecha_nacimiento: string | null;
   celular: string | null;
   direccion: string | null;
@@ -87,7 +95,7 @@ export interface Person {
 export interface PersonPayload {
   nombres: string;
   apellidos: string;
-  sexo: string;
+  sexo: Sexo;
   fecha_nacimiento: string;
   celular?: string;
   direccion?: string;
