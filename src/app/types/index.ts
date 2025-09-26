@@ -33,6 +33,8 @@ export interface Paginated<TItem> {
   page_size: number;
 }
 
+export type PaginatedResponse<TItem> = Paginated<TItem> | TItem[];
+
 export interface PaginationFilters {
   page: number;
   search?: string;

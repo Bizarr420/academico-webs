@@ -1,5 +1,12 @@
 import api, { withTrailingSlash } from '@/app/services/api';
-import type { ApiPerson, Paginated, Person, PersonFilters, PersonPayload } from '@/app/types';
+import type {
+  ApiPerson,
+  Paginated,
+  PaginatedResponse,
+  Person,
+  PersonFilters,
+  PersonPayload,
+} from '@/app/types';
 
 export const PEOPLE_PAGE_SIZE = 10;
 
@@ -37,7 +44,25 @@ const mapPayloadToApi = (payload: PersonPayload) => {
   ) as Record<string, unknown>;
 };
 
-export async function getPeople(filters: PersonFilters) {
+const normalizePaginatedItems = <T>(data: PaginatedResponse<T>): Paginated<T> => {
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      total: data.length,
+      page: 1,
+      page_size: data.length,
+    };
+  }
+
+  const items = Array.isArray(data.items) ? data.items : [];
+
+  return {
+    ...data,
+    items,
+  };
+};
+
+export async function getPeople(filters: PersonFilters): Promise<Paginated<Person>> {
   const { page, search, page_size = PEOPLE_PAGE_SIZE } = filters;
   const params: Record<string, unknown> = {
     page,
@@ -48,12 +73,15 @@ export async function getPeople(filters: PersonFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), {
+  const { data } = await api.get<PaginatedResponse<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), {
     params,
   });
+  const normalized = normalizePaginatedItems(data);
   return {
-    ...data,
-    items: data.items.map(mapPerson),
+    items: normalized.items.map(mapPerson),
+    total: normalized.total,
+    page: normalized.page,
+    page_size: normalized.page_size,
   };
 }
 
@@ -79,11 +107,12 @@ export async function deletePerson(id: number) {
 }
 
 export async function getAllPeople() {
-  const { data } = await api.get<Paginated<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), {
+  const { data } = await api.get<PaginatedResponse<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), {
     params: {
       page: 1,
       page_size: 1000,
     },
   });
-  return data.items.map(mapPerson);
+  const normalized = normalizePaginatedItems(data);
+  return normalized.items.map(mapPerson);
 }
