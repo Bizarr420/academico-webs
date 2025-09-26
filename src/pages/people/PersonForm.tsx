@@ -5,19 +5,17 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { createPerson, getPerson, updatePerson } from '@/app/services/people';
-import type { PersonPayload } from '@/app/types';
-
-const SEX_OPTIONS = ['M', 'F', 'X'] as const;
+import { SEX_CODES, SEX_LABELS } from '@/app/types';
+import type { PersonPayload, Sexo } from '@/app/types';
 
 const personSchema = z.object({
   nombres: z.string().min(1, 'Ingresa los nombres').max(120, 'Máximo 120 caracteres'),
   apellidos: z.string().min(1, 'Ingresa los apellidos').max(120, 'Máximo 120 caracteres'),
-  sexo: z
-    .string()
-    .min(1, 'Selecciona un sexo válido')
-    .refine((value) => SEX_OPTIONS.includes(value as (typeof SEX_OPTIONS)[number]), {
+  sexo: z.enum(SEX_CODES, {
+    errorMap: () => ({
       message: 'Selecciona un sexo válido',
     }),
+  }),
   fecha_nacimiento: z
     .string()
     .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/u, 'Ingresa una fecha válida (YYYY-MM-DD)'),
@@ -31,7 +29,7 @@ const personSchema = z.object({
 type PersonFormState = {
   nombres: string;
   apellidos: string;
-  sexo: string;
+  sexo: '' | Sexo;
   fecha_nacimiento: string;
   celular: string;
   direccion: string;
@@ -113,7 +111,7 @@ export default function PersonForm() {
     const trimmed = {
       nombres: form.nombres.trim(),
       apellidos: form.apellidos.trim(),
-      sexo: form.sexo.trim(),
+      sexo: form.sexo,
       fecha_nacimiento: form.fecha_nacimiento,
       celular: form.celular.trim() || undefined,
       direccion: form.direccion.trim() || undefined,
@@ -142,17 +140,18 @@ export default function PersonForm() {
     mutation.mutate(result.data);
   };
 
-  const updateField = (field: keyof PersonFormState) => (value: string) => {
-    setFieldErrors((previous) => {
-      if (!previous[field]) {
-        return previous;
-      }
-      const next = { ...previous };
-      delete next[field];
-      return next;
-    });
-    setForm((previous) => ({ ...previous, [field]: value }));
-  };
+  const updateField = <TField extends keyof PersonFormState>(field: TField) =>
+    (value: PersonFormState[TField]) => {
+      setFieldErrors((previous) => {
+        if (!previous[field]) {
+          return previous;
+        }
+        const next = { ...previous };
+        delete next[field];
+        return next;
+      });
+      setForm((previous) => ({ ...previous, [field]: value }));
+    };
 
   if (isEditing && personQuery.isLoading) {
     return <p>Cargando persona…</p>;
@@ -203,12 +202,14 @@ export default function PersonForm() {
               id="person-sexo"
               className="w-full border rounded px-3 py-2"
               value={form.sexo}
-              onChange={(event) => updateField('sexo')(event.target.value)}
+              onChange={(event) =>
+                updateField('sexo')(event.target.value as PersonFormState['sexo'])
+              }
             >
               <option value="">Selecciona…</option>
-              {SEX_OPTIONS.map((option) => (
+              {SEX_CODES.map((option) => (
                 <option key={option} value={option}>
-                  {option === 'M' ? 'Masculino' : option === 'F' ? 'Femenino' : 'Otro'}
+                  {SEX_LABELS[option]}
                 </option>
               ))}
             </select>

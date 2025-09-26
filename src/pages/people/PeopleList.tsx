@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import { deletePerson, getPeople, PEOPLE_PAGE_SIZE } from '@/app/services/people';
+import { SEX_LABELS } from '@/app/types';
 import type { Person } from '@/app/types';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -63,6 +64,13 @@ export default function PeopleList() {
     return value.slice(0, 10);
   };
 
+  const formatSex = (value: Person['sexo']) => {
+    if (!value) {
+      return '-';
+    }
+    return SEX_LABELS[value];
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow p-4">
       <div className="flex items-center justify-between mb-4">
@@ -108,7 +116,7 @@ export default function PeopleList() {
                 <tr key={person.id} className="border-b last:border-0">
                   <td className="py-2">{person.ci_numero || '-'}</td>
                   <td>{formatFullName(person)}</td>
-                  <td>{person.sexo || '-'}</td>
+                  <td>{formatSex(person.sexo)}</td>
                   <td>{formatBirthDate(person.fecha_nacimiento)}</td>
                   <td>{person.celular || '-'}</td>
                   <td>
