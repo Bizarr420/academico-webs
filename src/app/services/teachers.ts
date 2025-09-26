@@ -19,3 +19,17 @@ export async function createTeacher(payload: TeacherPayload) {
   const { data } = await api.post<Teacher>('/teachers', payload);
   return data;
 }
+
+export async function getTeacher(id: number) {
+  const { data } = await api.get<Teacher>(`/teachers/${id}`);
+  return data;
+}
+
+export async function updateTeacher(id: number, payload: TeacherPayload) {
+  const { data } = await api.put<Teacher>(`/teachers/${id}`, payload);
+  return data;
+}
+
+export async function deleteTeacher(id: number) {
+  await api.delete(`/teachers/${id}`);
+}

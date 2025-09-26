@@ -42,12 +42,19 @@ export interface StudentPayload {
 
 export type StudentFilters = PaginationFilters;
 
+export interface TeacherSubject {
+  id: number;
+  nombre: string;
+  curso: string;
+}
+
 export interface Teacher {
   id: number;
   ci: string | null;
   nombres: string;
   apellidos: string;
   especialidad: string | null;
+  materias?: TeacherSubject[];
 }
 
 export interface TeacherPayload {
@@ -55,6 +62,40 @@ export interface TeacherPayload {
   nombres: string;
   apellidos: string;
   especialidad: string;
+  materia_ids: number[];
 }
 
 export type TeacherFilters = PaginationFilters;
+
+export interface Course {
+  id: number;
+  nombre: string;
+  paralelo: string;
+  nivel: string | null;
+  materias?: Subject[];
+}
+
+export interface CoursePayload {
+  nombre: string;
+  paralelo: string;
+  nivel?: string;
+}
+
+export type CourseFilters = PaginationFilters;
+
+export interface Subject {
+  id: number;
+  nombre: string;
+  curso_id: number;
+  curso?: string;
+  paralelo?: string;
+}
+
+export interface SubjectPayload {
+  nombre: string;
+  curso_id: number;
+}
+
+export interface SubjectFilters extends PaginationFilters {
+  curso_id?: number;
+}

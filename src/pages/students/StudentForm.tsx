@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
-import { createStudent } from '@/app/services/students';
+import { createStudent, getStudent, updateStudent } from '@/app/services/students';
 import type { StudentPayload } from '@/app/types';
 
 const studentSchema = z.object({
@@ -28,14 +28,37 @@ const initialValues: StudentFormState = {
 export default function StudentForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { studentId } = useParams();
+  const isEditing = Boolean(studentId);
   const [form, setForm] = useState<StudentFormState>(initialValues);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState('');
 
+  const studentQuery = useQuery({
+    queryKey: ['student', studentId],
+    queryFn: async () => (studentId ? getStudent(Number(studentId)) : null),
+    enabled: isEditing,
+  });
+
+  useEffect(() => {
+    if (studentQuery.data) {
+      setForm({
+        ci: studentQuery.data.ci ?? '',
+        nombres: studentQuery.data.nombres,
+        apellidos: studentQuery.data.apellidos,
+        curso: studentQuery.data.curso ?? '',
+      });
+    }
+  }, [studentQuery.data]);
+
   const mutation = useMutation({
-    mutationFn: async (payload: StudentPayload) => createStudent(payload),
+    mutationFn: async (payload: StudentPayload) =>
+      studentId ? updateStudent(Number(studentId), payload) : createStudent(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
+      if (studentId) {
+        queryClient.invalidateQueries({ queryKey: ['student', studentId] });
+      }
       navigate('/estudiantes');
     },
     onError: (error: unknown) => {
@@ -79,9 +102,19 @@ export default function StudentForm() {
     setForm((previous) => ({ ...previous, [field]: value }));
   };
 
+  if (isEditing && studentQuery.isLoading) {
+    return <p>Cargando estudiante…</p>;
+  }
+
+  if (isEditing && studentQuery.isError) {
+    return <p className="text-red-600">No se pudo cargar la información del estudiante.</p>;
+  }
+
+  const title = isEditing ? 'Editar estudiante' : 'Nuevo estudiante';
+
   return (
     <div className="bg-white rounded-2xl shadow p-4 max-w-xl">
-      <h1 className="text-lg font-semibold mb-4">Nuevo estudiante</h1>
+      <h1 className="text-lg font-semibold mb-4">{title}</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-600" htmlFor="student-ci">
