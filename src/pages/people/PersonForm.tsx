@@ -19,7 +19,10 @@ const personSchema = z.object({
   fecha_nacimiento: z
     .string()
     .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/u, 'Ingresa una fecha válida (YYYY-MM-DD)'),
-  celular: z.string().max(20, 'Máximo 20 caracteres').optional(),
+  celular: z
+    .string()
+    .min(1, 'Ingresa el celular')
+    .max(20, 'Máximo 20 caracteres'),
   direccion: z.string().max(255, 'Máximo 255 caracteres').optional(),
   ci_numero: z.string().max(20, 'Máximo 20 caracteres').optional(),
   ci_complemento: z.string().max(5, 'Máximo 5 caracteres').optional(),
@@ -113,7 +116,7 @@ export default function PersonForm() {
       apellidos: form.apellidos.trim(),
       sexo: form.sexo,
       fecha_nacimiento: form.fecha_nacimiento,
-      celular: form.celular.trim() || undefined,
+      celular: form.celular.trim(),
       direccion: form.direccion.trim() || undefined,
       ci_numero: form.ci_numero.trim() || undefined,
       ci_complemento: form.ci_complemento.trim() || undefined,
