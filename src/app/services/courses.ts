@@ -1,4 +1,4 @@
-import api from '@/app/services/api';
+import api, { withTrailingSlash } from '@/app/services/api';
 import type { Course, CourseFilters, CoursePayload, Paginated } from '@/app/types';
 
 export const COURSES_PAGE_SIZE = 10;
@@ -16,7 +16,7 @@ export async function getCourses(filters: CourseFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<Course>>(COURSES_ENDPOINT, {
+  const { data } = await api.get<Paginated<Course>>(withTrailingSlash(COURSES_ENDPOINT), {
     params,
   });
   return data;
@@ -28,7 +28,7 @@ export async function getCourse(id: number) {
 }
 
 export async function createCourse(payload: CoursePayload) {
-  const { data } = await api.post<Course>(COURSES_ENDPOINT, payload);
+  const { data } = await api.post<Course>(withTrailingSlash(COURSES_ENDPOINT), payload);
   return data;
 }
 
@@ -42,7 +42,7 @@ export async function deleteCourse(id: number) {
 }
 
 export async function getAllCourses() {
-  const { data } = await api.get<Paginated<Course>>(COURSES_ENDPOINT, {
+  const { data } = await api.get<Paginated<Course>>(withTrailingSlash(COURSES_ENDPOINT), {
     params: {
       page: 1,
       page_size: 1000,

@@ -1,4 +1,4 @@
-import api from '@/app/services/api';
+import api, { withTrailingSlash } from '@/app/services/api';
 import type { Paginated, Student, StudentFilters, StudentPayload } from '@/app/types';
 
 export const STUDENTS_PAGE_SIZE = 10;
@@ -16,14 +16,14 @@ export async function getStudents(filters: StudentFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<Student>>(STUDENTS_ENDPOINT, {
+  const { data } = await api.get<Paginated<Student>>(withTrailingSlash(STUDENTS_ENDPOINT), {
     params,
   });
   return data;
 }
 
 export async function createStudent(payload: StudentPayload) {
-  const { data } = await api.post<Student>(STUDENTS_ENDPOINT, payload);
+  const { data } = await api.post<Student>(withTrailingSlash(STUDENTS_ENDPOINT), payload);
   return data;
 }
 

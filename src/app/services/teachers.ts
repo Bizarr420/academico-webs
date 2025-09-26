@@ -1,4 +1,4 @@
-import api from '@/app/services/api';
+import api, { withTrailingSlash } from '@/app/services/api';
 import type { Paginated, Teacher, TeacherFilters, TeacherPayload } from '@/app/types';
 
 export const TEACHERS_PAGE_SIZE = 10;
@@ -16,14 +16,14 @@ export async function getTeachers(filters: TeacherFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<Teacher>>(TEACHERS_ENDPOINT, {
+  const { data } = await api.get<Paginated<Teacher>>(withTrailingSlash(TEACHERS_ENDPOINT), {
     params,
   });
   return data;
 }
 
 export async function createTeacher(payload: TeacherPayload) {
-  const { data } = await api.post<Teacher>(TEACHERS_ENDPOINT, payload);
+  const { data } = await api.post<Teacher>(withTrailingSlash(TEACHERS_ENDPOINT), payload);
   return data;
 }
 
