@@ -1,4 +1,4 @@
-import api from '@/app/services/api';
+import api, { withTrailingSlash } from '@/app/services/api';
 import type { ApiPerson, Paginated, Person, PersonFilters, PersonPayload } from '@/app/types';
 
 export const PEOPLE_PAGE_SIZE = 10;
@@ -56,7 +56,7 @@ export async function getPeople(filters: PersonFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<ApiPerson>>(PEOPLE_ENDPOINT, {
+  const { data } = await api.get<Paginated<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), {
     params,
   });
   return {
@@ -72,7 +72,7 @@ export async function getPerson(id: number) {
 
 export async function createPerson(payload: PersonPayload) {
   const body = mapPayloadToApi(payload);
-  const { data } = await api.post<ApiPerson>(PEOPLE_ENDPOINT, body);
+  const { data } = await api.post<ApiPerson>(withTrailingSlash(PEOPLE_ENDPOINT), body);
   return mapPerson(data);
 }
 
@@ -87,7 +87,7 @@ export async function deletePerson(id: number) {
 }
 
 export async function getAllPeople() {
-  const { data } = await api.get<Paginated<ApiPerson>>(PEOPLE_ENDPOINT, {
+  const { data } = await api.get<Paginated<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), {
     params: {
       page: 1,
       page_size: 1000,

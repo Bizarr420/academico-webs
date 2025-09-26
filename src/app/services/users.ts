@@ -1,4 +1,4 @@
-import api from '@/app/services/api';
+import api, { withTrailingSlash } from '@/app/services/api';
 import type {
   ApiManagedUser,
   ManagedUser,
@@ -46,7 +46,7 @@ export async function getUsers(filters: UserFilters) {
     params.role = role;
   }
 
-  const { data } = await api.get<Paginated<ApiManagedUser>>(USERS_ENDPOINT, {
+  const { data } = await api.get<Paginated<ApiManagedUser>>(withTrailingSlash(USERS_ENDPOINT), {
     params,
   });
   return {
@@ -61,7 +61,7 @@ export async function getUser(id: number) {
 }
 
 export async function createUser(payload: UserPayload) {
-  const { data } = await api.post<ApiManagedUser>(USERS_ENDPOINT, payload);
+  const { data } = await api.post<ApiManagedUser>(withTrailingSlash(USERS_ENDPOINT), payload);
   return mapUser(data);
 }
 
