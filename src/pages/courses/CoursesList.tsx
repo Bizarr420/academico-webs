@@ -35,7 +35,7 @@ export default function CoursesList() {
 
   const courses: Course[] = data?.items ?? [];
   const pageSize = data?.page_size ?? COURSES_PAGE_SIZE;
-  const isEmpty = !isLoading && courses.length === 0;
+  const isEmpty = !isLoading && !isError && courses.length === 0;
   const disablePrevious = page === 1 || isFetching;
   const disableNext = courses.length < pageSize || isFetching;
 

@@ -35,7 +35,7 @@ export default function TeachersList() {
 
   const teachers: Teacher[] = data?.items ?? [];
   const pageSize = data?.page_size ?? TEACHERS_PAGE_SIZE;
-  const isEmpty = !isLoading && teachers.length === 0;
+  const isEmpty = !isLoading && !isError && teachers.length === 0;
   const disablePrevious = page === 1 || isFetching;
   const disableNext = teachers.length < pageSize || isFetching;
 
