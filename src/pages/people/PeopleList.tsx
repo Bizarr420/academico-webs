@@ -56,6 +56,13 @@ export default function PeopleList() {
 
   const formatFullName = (person: Person) => `${person.apellidos} ${person.nombres}`.trim();
 
+  const formatBirthDate = (value: string | null) => {
+    if (!value) {
+      return '-';
+    }
+    return value.slice(0, 10);
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow p-4">
       <div className="flex items-center justify-between mb-4">
@@ -90,18 +97,20 @@ export default function PeopleList() {
               <tr className="text-left border-b">
                 <th className="py-2">CI</th>
                 <th>Nombre</th>
-                <th>Teléfono</th>
-                <th>Correo</th>
+                <th>Sexo</th>
+                <th>Fecha de nacimiento</th>
+                <th>Celular</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {people.map((person) => (
                 <tr key={person.id} className="border-b last:border-0">
-                  <td className="py-2">{person.ci || '-'}</td>
+                  <td className="py-2">{person.ci_numero || '-'}</td>
                   <td>{formatFullName(person)}</td>
-                  <td>{person.telefono || '-'}</td>
-                  <td>{person.correo || '-'}</td>
+                  <td>{person.sexo || '-'}</td>
+                  <td>{formatBirthDate(person.fecha_nacimiento)}</td>
+                  <td>{person.celular || '-'}</td>
                   <td>
                     <div className="flex gap-2">
                       <Link
