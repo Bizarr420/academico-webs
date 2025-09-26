@@ -3,12 +3,36 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import api from '@/app/services/api';
-import type { AuthResponse, User } from '@/app/types';
+import type { ApiUser, AuthResponse, Role, User } from '@/app/types';
 
 import { AuthContext } from './AuthContext';
 
 type AuthProviderProps = {
   children: ReactNode;
+};
+
+const normalizeRole = (role: ApiUser['role'] | Role | string): Role => {
+  const normalized = `${role}`.toLowerCase();
+  if (normalized === 'admin' || normalized === 'administrador') {
+    return 'admin';
+  }
+  if (normalized === 'docente') {
+    return 'docente';
+  }
+  if (normalized === 'padre') {
+    return 'padre';
+  }
+
+  console.warn(`Rol desconocido recibido: ${role}. Se usará "docente" por defecto.`);
+  return 'docente';
+};
+
+const normalizeUser = (user: ApiUser | User): User => {
+  const { role, ...rest } = user;
+  return {
+    ...rest,
+    role: normalizeRole(role),
+  };
 };
 
 export default function AuthProvider({ children }: AuthProviderProps) {
@@ -19,7 +43,10 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     const saved = localStorage.getItem('user');
     if (saved) {
       try {
-        setUser(JSON.parse(saved) as User);
+        const parsed = JSON.parse(saved) as ApiUser | User;
+        const normalizedUser = normalizeUser(parsed);
+        setUser(normalizedUser);
+        localStorage.setItem('user', JSON.stringify(normalizedUser));
       } catch (error) {
         console.error('Failed to parse saved user from storage', error);
         localStorage.removeItem('user');
@@ -39,9 +66,10 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       },
     );
+    const normalizedUser = normalizeUser(data.user);
     localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    setUser(data.user);
+    localStorage.setItem('user', JSON.stringify(normalizedUser));
+    setUser(normalizedUser);
   }, []);
 
   const logout = useCallback(() => {
