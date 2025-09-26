@@ -1,15 +1,29 @@
 export type Role = 'admin' | 'docente' | 'padre';
 
+export type ApiRole =
+  | Role
+  | 'ADMIN'
+  | 'ADMINISTRADOR'
+  | 'Administrador'
+  | 'Docente'
+  | 'DOCENTE'
+  | 'Padre'
+  | 'PADRE';
+
 export interface User {
   id: number;
   name: string;
   role: Role;
 }
 
+export interface ApiUser extends Omit<User, 'role'> {
+  role: ApiRole;
+}
+
 export interface AuthResponse {
   access_token: string;
   token_type: 'bearer' | string;
-  user: User;
+  user: ApiUser;
 }
 
 export interface Paginated<TItem> {
