@@ -19,6 +19,8 @@ const navItems = [
   { to: '/cursos', label: 'Cursos', roles: ['admin'] },
   { to: '/materias', label: 'Materias', roles: ['admin'] },
   { to: '/usuarios', label: 'Usuarios', roles: ['admin'] },
+  { to: '/roles', label: 'Roles', roles: ['admin'] },
+  { to: '/auditoria', label: 'Auditoría', roles: ['admin'] },
 ];
 
 export default function Sidebar({ className = '', onNavigate }: SidebarProps) {

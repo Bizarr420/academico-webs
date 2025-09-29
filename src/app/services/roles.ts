@@ -1,0 +1,103 @@
+import api, { withTrailingSlash } from '@/app/services/api';
+import type {
+  ApiRoleDefinition,
+  ApiRoleOption,
+  ApiRoleView,
+  Paginated,
+  RoleDefinition,
+  RoleFilters,
+  RoleOption,
+  RolePayload,
+  RoleView,
+} from '@/app/types';
+
+export const ROLES_PAGE_SIZE = 10;
+
+const ROLES_ENDPOINT = '/roles';
+const ROLE_VIEWS_ENDPOINT = '/roles/vistas-disponibles';
+const ROLE_OPTIONS_ENDPOINT = '/roles/opciones';
+
+const normalizeRoleKey = (role: string): RoleOption['clave'] => {
+  const normalized = `${role}`.toLowerCase();
+  if (normalized === 'administrador' || normalized === 'admin') {
+    return 'admin';
+  }
+  if (normalized === 'docente') {
+    return 'docente';
+  }
+  if (normalized === 'padre') {
+    return 'padre';
+  }
+  return normalized as RoleOption['clave'];
+};
+
+const mapRoleView = (view: ApiRoleView): RoleView => ({
+  id: view.id,
+  nombre: view.nombre,
+  codigo: view.codigo,
+  descripcion: view.descripcion ?? null,
+});
+
+const mapRole = (role: ApiRoleDefinition): RoleDefinition => ({
+  id: role.id,
+  nombre: role.nombre,
+  descripcion: role.descripcion ?? null,
+  vistas: (role.vistas ?? []).map(mapRoleView),
+  vista_ids: role.vista_ids ?? (role.vistas ? role.vistas.map((view) => view.id) : []),
+});
+
+const mapRoleOption = (role: ApiRoleOption): RoleOption => ({
+  id: role.id,
+  nombre: role.nombre,
+  clave: normalizeRoleKey(role.clave),
+});
+
+export async function getRoles(filters: RoleFilters) {
+  const { page, search, page_size = ROLES_PAGE_SIZE } = filters;
+  const params: Record<string, unknown> = {
+    page,
+    page_size,
+  };
+
+  if (typeof search === 'string' && search.trim().length > 0) {
+    params.search = search.trim();
+  }
+
+  const { data } = await api.get<Paginated<ApiRoleDefinition>>(withTrailingSlash(ROLES_ENDPOINT), {
+    params,
+  });
+
+  return {
+    ...data,
+    items: data.items.map(mapRole),
+  };
+}
+
+export async function getRole(id: number) {
+  const { data } = await api.get<ApiRoleDefinition>(`${ROLES_ENDPOINT}/${id}`);
+  return mapRole(data);
+}
+
+export async function createRole(payload: RolePayload) {
+  const { data } = await api.post<ApiRoleDefinition>(withTrailingSlash(ROLES_ENDPOINT), payload);
+  return mapRole(data);
+}
+
+export async function updateRole(id: number, payload: RolePayload) {
+  const { data } = await api.patch<ApiRoleDefinition>(`${ROLES_ENDPOINT}/${id}`, payload);
+  return mapRole(data);
+}
+
+export async function deleteRole(id: number) {
+  await api.delete(`${ROLES_ENDPOINT}/${id}`);
+}
+
+export async function getAvailableRoleViews() {
+  const { data } = await api.get<ApiRoleView[]>(ROLE_VIEWS_ENDPOINT);
+  return data.map(mapRoleView);
+}
+
+export async function getRoleOptions() {
+  const { data } = await api.get<ApiRoleOption[]>(ROLE_OPTIONS_ENDPOINT);
+  return data.map(mapRoleOption);
+}
