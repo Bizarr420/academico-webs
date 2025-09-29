@@ -5,12 +5,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { getAllPeople } from '@/app/services/people';
+import { getRoleOptions } from '@/app/services/roles';
 import { createUser, getUser, updateUser } from '@/app/services/users';
-import type { Person, Role, UserPayload } from '@/app/types';
+import type { Person, Role, RoleOption, UserPayload } from '@/app/types';
 
 const userSchema = z.object({
   username: z.string().min(3, 'Ingresa el nombre de usuario'),
-  role: z.enum(['admin', 'docente', 'padre']),
+  role: z.string().min(1, 'Selecciona un rol'),
   persona_id: z.number().int('Selecciona una persona').min(1, 'Selecciona una persona'),
   email: z.string().email('Ingresa un correo válido').optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
@@ -34,16 +35,10 @@ type FieldErrors = Partial<{
 
 const initialValues: UserFormState = {
   username: '',
-  role: 'docente',
+  role: '' as Role,
   personaId: '',
   email: '',
   password: '',
-};
-
-const roleLabels: Record<Role, string> = {
-  admin: 'Administrador',
-  docente: 'Docente',
-  padre: 'Padre',
 };
 
 export default function UserForm() {
@@ -58,6 +53,11 @@ export default function UserForm() {
   const peopleQuery = useQuery({
     queryKey: ['people', 'all'],
     queryFn: async () => getAllPeople(),
+  });
+
+  const rolesQuery = useQuery({
+    queryKey: ['role-options'],
+    queryFn: async () => getRoleOptions(),
   });
 
   const userQuery = useQuery({
@@ -77,6 +77,17 @@ export default function UserForm() {
       });
     }
   }, [userQuery.data]);
+
+  useEffect(() => {
+    if (!isEditing && rolesQuery.data && rolesQuery.data.length > 0) {
+      setForm((previous) => {
+        if (previous.role && rolesQuery.data?.some((option) => option.clave === previous.role)) {
+          return previous;
+        }
+        return { ...previous, role: rolesQuery.data[0].clave };
+      });
+    }
+  }, [isEditing, rolesQuery.data]);
 
   const mutation = useMutation({
     mutationFn: async (payload: UserPayload) =>
@@ -130,7 +141,14 @@ export default function UserForm() {
     }
 
     setFieldErrors({});
-    mutation.mutate(result.data);
+    const payload: UserPayload = {
+      username: result.data.username,
+      role: result.data.role as Role,
+      persona_id: result.data.persona_id,
+      email: result.data.email,
+      password: result.data.password,
+    };
+    mutation.mutate(payload);
   };
 
   const updateField = <TField extends keyof UserFormState>(field: TField) => (value: UserFormState[TField]) => {
@@ -173,6 +191,15 @@ export default function UserForm() {
     });
   }, [peopleQuery.data]);
 
+  const roleOptions = useMemo<RoleOption[]>(() => {
+    const options = rolesQuery.data ?? [];
+    if (form.role && options.every((option) => option.clave !== form.role)) {
+      return [...options, { id: -1, nombre: form.role, clave: form.role }];
+    }
+    return options;
+  }, [form.role, rolesQuery.data]);
+  const roleSelectDisabled = rolesQuery.isLoading || roleOptions.length === 0;
+
   return (
     <div className="bg-white rounded-2xl shadow p-4 max-w-2xl">
       <h1 className="text-lg font-semibold mb-4">{title}</h1>
@@ -199,13 +226,20 @@ export default function UserForm() {
               className="w-full border rounded px-3 py-2"
               value={form.role}
               onChange={(event) => updateField('role')(event.target.value as Role)}
+              disabled={roleSelectDisabled}
             >
-              {Object.entries(roleLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
+              {roleOptions.map((option) => (
+                <option key={option.id} value={option.clave}>
+                  {option.nombre}
                 </option>
               ))}
             </select>
+            {rolesQuery.isError && (
+              <p className="text-sm text-red-600 mt-1">No se pudieron cargar los roles.</p>
+            )}
+            {!rolesQuery.isLoading && !rolesQuery.isError && roleOptions.length === 0 && (
+              <p className="text-sm text-gray-500 mt-1">No hay roles disponibles.</p>
+            )}
             {fieldErrors.role && <p className="text-sm text-red-600 mt-1">{fieldErrors.role}</p>}
           </div>
         </div>

@@ -191,3 +191,75 @@ export interface UserPayload {
 export interface UserFilters extends PaginationFilters {
   role?: Role;
 }
+
+export interface ApiRoleOption {
+  id: number;
+  nombre: string;
+  clave: string;
+}
+
+export interface RoleOption {
+  id: number;
+  nombre: string;
+  clave: Role;
+}
+
+export interface ApiRoleView {
+  id: number;
+  nombre: string;
+  codigo: string;
+  descripcion?: string | null;
+}
+
+export interface RoleView {
+  id: number;
+  nombre: string;
+  codigo: string;
+  descripcion?: string | null;
+}
+
+export interface ApiRoleDefinition {
+  id: number;
+  nombre: string;
+  descripcion?: string | null;
+  vistas?: ApiRoleView[];
+  vista_ids?: number[];
+}
+
+export interface RoleDefinition {
+  id: number;
+  nombre: string;
+  descripcion?: string | null;
+  vistas: RoleView[];
+  vista_ids: number[];
+}
+
+export type RoleFilters = PaginationFilters;
+
+export interface RolePayload {
+  nombre: string;
+  descripcion?: string;
+  vista_ids: number[];
+}
+
+export interface ApiAuditLogEntry {
+  id: number;
+  accion: string;
+  recurso: string;
+  usuario: string;
+  fecha: string;
+  dispositivo?: string | null;
+  ip?: string | null;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  action: string;
+  resource: string;
+  actor: string;
+  timestamp: string;
+  device?: string | null;
+  ip?: string | null;
+}
+
+export type AuditLogFilters = PaginationFilters;

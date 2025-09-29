@@ -18,6 +18,9 @@ import PeopleList from '@/pages/people/PeopleList';
 import PersonForm from '@/pages/people/PersonForm';
 import UsersList from '@/pages/users/UsersList';
 import UserForm from '@/pages/users/UserForm';
+import RolesList from '@/pages/roles/RolesList';
+import RoleForm from '@/pages/roles/RoleForm';
+import AuditLog from '@/pages/audit/AuditLog';
 
 export default function AppRouter() {
   const { isAuthenticated } = useAuth();
@@ -52,6 +55,10 @@ export default function AppRouter() {
             <Route path="usuarios" element={<UsersList />} />
             <Route path="usuarios/nuevo" element={<UserForm />} />
             <Route path="usuarios/:userId/editar" element={<UserForm />} />
+            <Route path="roles" element={<RolesList />} />
+            <Route path="roles/nuevo" element={<RoleForm />} />
+            <Route path="roles/:roleId/editar" element={<RoleForm />} />
+            <Route path="auditoria" element={<AuditLog />} />
           </Route>
         </Route>
       </Route>

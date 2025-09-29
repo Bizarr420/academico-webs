@@ -11,11 +11,7 @@ import type { PersonPayload, Sexo } from '@/app/types';
 const personSchema = z.object({
   nombres: z.string().min(1, 'Ingresa los nombres').max(120, 'Máximo 120 caracteres'),
   apellidos: z.string().min(1, 'Ingresa los apellidos').max(120, 'Máximo 120 caracteres'),
-  sexo: z.enum(SEX_CODES, {
-    errorMap: () => ({
-      message: 'Selecciona un sexo válido',
-    }),
-  }),
+  sexo: z.enum(SEX_CODES, { message: 'Selecciona un sexo válido' }),
   fecha_nacimiento: z
     .string()
     .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/u, 'Ingresa una fecha válida (YYYY-MM-DD)'),
