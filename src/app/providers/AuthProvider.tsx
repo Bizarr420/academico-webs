@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import api, { withTrailingSlash } from '@/app/services/api';
-import type { ApiUser, AuthResponse, Role, User } from '@/app/types';
+import type { ApiUser, ApiView, AuthResponse, Role, User, View, ViewCode } from '@/app/types';
 
 import { AuthContext } from './AuthContext';
 
@@ -27,11 +27,25 @@ const normalizeRole = (role: ApiUser['role'] | Role | string): Role => {
   return 'admin';
 };
 
+const normalizeViews = (views?: (ApiView | View)[] | null): View[] => {
+  if (!Array.isArray(views)) {
+    return [];
+  }
+
+  return views.map((view) => ({
+    id: view.id,
+    nombre: view.nombre,
+    codigo: view.codigo,
+    descripcion: view.descripcion ?? null,
+  }));
+};
+
 const normalizeUser = (user: ApiUser | User): User => {
-  const { role, ...rest } = user;
+  const { role, vistas, ...rest } = user as ApiUser & { vistas?: (ApiView | View)[] };
   return {
     ...rest,
     role: normalizeRole(role),
+    vistas: normalizeViews(vistas),
   };
 };
 
@@ -79,14 +93,29 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     navigate('/login', { replace: true });
   }, [navigate]);
 
+  const views = useMemo<ViewCode[]>(() => {
+    if (!user) {
+      return [];
+    }
+
+    return user.vistas.map((view) => view.codigo as ViewCode);
+  }, [user]);
+
+  const hasView = useCallback(
+    (code: ViewCode) => views.includes(code),
+    [views],
+  );
+
   const value = useMemo(
     () => ({
       user,
       isAuthenticated: user !== null,
+      views,
+      hasView,
       login,
       logout,
     }),
-    [login, logout, user],
+    [hasView, login, logout, user, views],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

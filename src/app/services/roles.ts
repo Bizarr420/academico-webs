@@ -1,20 +1,18 @@
 import api, { withTrailingSlash } from '@/app/services/api';
+import { getViews, mapView } from '@/app/services/views';
 import type {
   ApiRoleDefinition,
   ApiRoleOption,
-  ApiRoleView,
   Paginated,
   RoleDefinition,
   RoleFilters,
   RoleOption,
   RolePayload,
-  RoleView,
 } from '@/app/types';
 
 export const ROLES_PAGE_SIZE = 10;
 
 const ROLES_ENDPOINT = '/roles';
-const ROLE_VIEWS_ENDPOINT = '/roles/vistas-disponibles';
 const ROLE_OPTIONS_ENDPOINT = '/roles/opciones';
 
 const normalizeRoleKey = (role: string): RoleOption['clave'] => {
@@ -31,18 +29,11 @@ const normalizeRoleKey = (role: string): RoleOption['clave'] => {
   return normalized as RoleOption['clave'];
 };
 
-const mapRoleView = (view: ApiRoleView): RoleView => ({
-  id: view.id,
-  nombre: view.nombre,
-  codigo: view.codigo,
-  descripcion: view.descripcion ?? null,
-});
-
 const mapRole = (role: ApiRoleDefinition): RoleDefinition => ({
   id: role.id,
   nombre: role.nombre,
   descripcion: role.descripcion ?? null,
-  vistas: (role.vistas ?? []).map(mapRoleView),
+  vistas: (role.vistas ?? []).map(mapView),
   vista_ids: role.vista_ids ?? (role.vistas ? role.vistas.map((view) => view.id) : []),
 });
 
@@ -93,8 +84,7 @@ export async function deleteRole(id: number) {
 }
 
 export async function getAvailableRoleViews() {
-  const { data } = await api.get<ApiRoleView[]>(ROLE_VIEWS_ENDPOINT);
-  return data.map(mapRoleView);
+  return getViews();
 }
 
 export async function getRoleOptions() {
