@@ -24,9 +24,16 @@ const sanitizeRole = (value: string): string => {
   return candidate.replace(/\s+/g, ' ').trim();
 };
 
+const INVALID_ROLE_VALUES = new Set(['', 'undefined', 'null', 'none', 'ninguno']);
+
 export const normalizeRole = (role: Role | string): Role => {
   const raw = typeof role === 'string' ? role : `${role}`;
   const sanitized = sanitizeRole(raw);
+
+  if (INVALID_ROLE_VALUES.has(sanitized)) {
+    return '' as Role;
+  }
+
   const alias = ROLE_ALIASES[sanitized];
 
   if (alias) {
@@ -47,4 +54,31 @@ export const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrador',
   docente: 'Docente',
   padre: 'Padre',
+};
+
+const capitalizeWord = (word: string) =>
+  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+export const resolveRoleLabel = (role: Role | string | null | undefined): string => {
+  if (typeof role !== 'string') {
+    return '';
+  }
+
+  const normalized = normalizeRole(role);
+
+  if (!normalized) {
+    return '';
+  }
+
+  const label = ROLE_LABELS[normalized];
+
+  if (label) {
+    return label;
+  }
+
+  return normalized
+    .split(' ')
+    .filter(Boolean)
+    .map(capitalizeWord)
+    .join(' ');
 };
