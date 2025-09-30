@@ -27,6 +27,10 @@ const normalizeRole = (role: ApiUser['role'] | Role | string): Role => {
   return ROLE_ALIASES[normalized] ?? (normalized as Role);
 };
 
+const normalizeViewCode = (code: ApiView['codigo'] | View['codigo'] | string) => {
+  return `${code}`.trim().toUpperCase();
+};
+
 const normalizeViews = (views?: (ApiView | View)[] | null): View[] => {
   if (!Array.isArray(views)) {
     return [];
@@ -35,7 +39,7 @@ const normalizeViews = (views?: (ApiView | View)[] | null): View[] => {
   return views.map((view) => ({
     id: view.id,
     nombre: view.nombre,
-    codigo: view.codigo,
+    codigo: normalizeViewCode(view.codigo),
     descripcion: view.descripcion ?? null,
   }));
 };

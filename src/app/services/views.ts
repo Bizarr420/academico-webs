@@ -3,10 +3,14 @@ import type { ApiView, View } from '@/app/types';
 
 const VIEWS_ENDPOINT = '/v1/vistas';
 
+const normalizeViewCode = (code: ApiView['codigo'] | View['codigo'] | string) => {
+  return `${code}`.trim().toUpperCase();
+};
+
 export const mapView = (view: ApiView): View => ({
   id: view.id,
   nombre: view.nombre,
-  codigo: view.codigo,
+  codigo: normalizeViewCode(view.codigo),
   descripcion: view.descripcion ?? null,
 });
 
