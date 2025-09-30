@@ -1,12 +1,7 @@
 import { useMemo } from 'react';
 
 import { useAuth } from '@/app/hooks/useAuth';
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Administrador',
-  docente: 'Docente',
-  padre: 'Padre',
-};
+import { ROLE_LABELS } from '@/app/utils/roles';
 
 type TopbarProps = {
   onToggleSidebar?: () => void;
