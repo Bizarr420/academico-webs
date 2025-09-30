@@ -49,6 +49,8 @@ export interface View {
 export interface User {
   id: number;
   name: string;
+  username?: string | null;
+  email?: string | null;
   role: Role;
   vistas: View[];
 }

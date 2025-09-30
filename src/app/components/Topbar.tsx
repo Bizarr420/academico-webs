@@ -1,4 +1,12 @@
+import { useMemo } from 'react';
+
 import { useAuth } from '@/app/hooks/useAuth';
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Administrador',
+  docente: 'Docente',
+  padre: 'Padre',
+};
 
 type TopbarProps = {
   onToggleSidebar?: () => void;
@@ -6,6 +14,20 @@ type TopbarProps = {
 
 export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const { user, logout } = useAuth();
+
+  const { displayName, roleLabel } = useMemo(() => {
+    if (!user) {
+      return { displayName: '', roleLabel: '' };
+    }
+
+    const name = typeof user.name === 'string' && user.name.trim() ? user.name.trim() : null;
+    const username = typeof user.username === 'string' && user.username.trim() ? user.username.trim() : null;
+    const displayNameValue = name ?? username ?? 'Usuario';
+    const normalizedRole = typeof user.role === 'string' ? user.role.trim().toLowerCase() : '';
+    const roleLabelValue = normalizedRole ? ROLE_LABELS[normalizedRole] ?? user.role : '';
+
+    return { displayName: displayNameValue, roleLabel: roleLabelValue };
+  }, [user]);
 
   return (
     <header className="h-14 border-b bg-white px-4 flex items-center justify-between sticky top-0 z-30">
@@ -32,7 +54,12 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
         <div className="font-semibold text-sm sm:text-base">Unidad Educativa Adventista Los Andes</div>
       </div>
       <div className="flex items-center gap-3">
-        {user && <span className="text-xs sm:text-sm text-gray-600">{user.name} • {user.role}</span>}
+        {user && (
+          <span className="text-xs sm:text-sm text-gray-600">
+            {displayName}
+            {roleLabel ? ` • ${roleLabel}` : ''}
+          </span>
+        )}
         <button
           onClick={logout}
           className="text-sm px-3 py-1 rounded bg-gray-900 text-white hover:bg-gray-800 transition-colors"

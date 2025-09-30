@@ -40,9 +40,22 @@ const normalizeViews = (views?: (ApiView | View)[] | null): View[] => {
 };
 
 const normalizeUser = (user: ApiUser | User): User => {
-  const { role, vistas, ...rest } = user as ApiUser & { vistas?: (ApiView | View)[] };
+  const { role, vistas, name, username, email, ...rest } = user as ApiUser & {
+    vistas?: (ApiView | View)[];
+    username?: string | null;
+    email?: string | null;
+    name?: string | null;
+  };
+
+  const trimmedName = typeof name === 'string' ? name.trim() : '';
+  const trimmedUsername = typeof username === 'string' ? username.trim() : '';
+  const displayName = trimmedName || trimmedUsername || 'Usuario';
+
   return {
     ...rest,
+    name: displayName,
+    username: trimmedUsername || null,
+    email: typeof email === 'string' ? email : null,
     role: normalizeRole(role),
     vistas: normalizeViews(vistas),
   };
