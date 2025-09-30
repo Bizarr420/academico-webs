@@ -15,18 +15,20 @@ export const ROLES_PAGE_SIZE = 10;
 const ROLES_ENDPOINT = '/roles';
 const ROLE_OPTIONS_ENDPOINT = '/roles/opciones';
 
+const ROLE_ALIASES: Record<string, RoleOption['clave']> = {
+  admin: 'admin',
+  administrador: 'admin',
+  adm: 'admin',
+  docente: 'docente',
+  doc: 'docente',
+  padre: 'padre',
+  pad: 'padre',
+};
+
 const normalizeRoleKey = (role: string): RoleOption['clave'] => {
   const normalized = `${role}`.trim().toLowerCase();
-  if (normalized === 'administrador' || normalized === 'admin') {
-    return 'admin';
-  }
-  if (normalized === 'docente') {
-    return 'docente';
-  }
-  if (normalized === 'padre') {
-    return 'padre';
-  }
-  return normalized as RoleOption['clave'];
+
+  return ROLE_ALIASES[normalized] ?? (normalized as RoleOption['clave']);
 };
 
 const mapRole = (role: ApiRoleDefinition): RoleDefinition => ({

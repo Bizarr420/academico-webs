@@ -11,19 +11,20 @@ type AuthProviderProps = {
   children: ReactNode;
 };
 
+const ROLE_ALIASES: Record<string, Role> = {
+  admin: 'admin',
+  administrador: 'admin',
+  adm: 'admin',
+  docente: 'docente',
+  doc: 'docente',
+  padre: 'padre',
+  pad: 'padre',
+};
+
 const normalizeRole = (role: ApiUser['role'] | Role | string): Role => {
   const normalized = `${role}`.trim().toLowerCase();
-  if (normalized === 'admin' || normalized === 'administrador') {
-    return 'admin';
-  }
-  if (normalized === 'docente') {
-    return 'docente';
-  }
-  if (normalized === 'padre') {
-    return 'padre';
-  }
 
-  return normalized as Role;
+  return ROLE_ALIASES[normalized] ?? (normalized as Role);
 };
 
 const normalizeViews = (views?: (ApiView | View)[] | null): View[] => {

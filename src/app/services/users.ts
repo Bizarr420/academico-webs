@@ -11,18 +11,22 @@ export const USERS_PAGE_SIZE = 10;
 
 const USERS_ENDPOINT = '/usuarios';
 
-const normalizeRole = (role: ApiManagedUser['role'] | ManagedUser['role'] | string): ManagedUser['role'] => {
+const ROLE_ALIASES: Record<string, ManagedUser['role']> = {
+  admin: 'admin',
+  administrador: 'admin',
+  adm: 'admin',
+  docente: 'docente',
+  doc: 'docente',
+  padre: 'padre',
+  pad: 'padre',
+};
+
+const normalizeRole = (
+  role: ApiManagedUser['role'] | ManagedUser['role'] | string,
+): ManagedUser['role'] => {
   const normalized = `${role}`.trim().toLowerCase();
-  if (normalized === 'admin' || normalized === 'administrador') {
-    return 'admin';
-  }
-  if (normalized === 'docente') {
-    return 'docente';
-  }
-  if (normalized === 'padre') {
-    return 'padre';
-  }
-  return normalized as ManagedUser['role'];
+
+  return ROLE_ALIASES[normalized] ?? (normalized as ManagedUser['role']);
 };
 
 const mapUser = (user: ApiManagedUser): ManagedUser => ({
