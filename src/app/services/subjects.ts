@@ -20,7 +20,7 @@ export async function getSubjects(filters: SubjectFilters) {
     params.curso_id = curso_id;
   }
 
-  const { data } = await api.get<Paginated<Subject>>(withTrailingSlash(SUBJECTS_ENDPOINT), {
+  const { data } = await api.get<Paginated<Subject>>(SUBJECTS_ENDPOINT, {
     params,
   });
   return data;
@@ -46,7 +46,7 @@ export async function deleteSubject(id: number) {
 }
 
 export async function getAllSubjects() {
-  const { data } = await api.get<Paginated<Subject>>(withTrailingSlash(SUBJECTS_ENDPOINT), {
+  const { data } = await api.get<Paginated<Subject>>(SUBJECTS_ENDPOINT, {
     params: {
       page: 1,
       page_size: 1000,
