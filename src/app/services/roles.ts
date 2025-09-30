@@ -9,27 +9,12 @@ import type {
   RoleOption,
   RolePayload,
 } from '@/app/types';
+import { normalizeRole } from '@/app/utils/roles';
 
 export const ROLES_PAGE_SIZE = 10;
 
 const ROLES_ENDPOINT = '/roles';
 const ROLE_OPTIONS_ENDPOINT = '/roles/opciones';
-
-const ROLE_ALIASES: Record<string, RoleOption['clave']> = {
-  admin: 'admin',
-  administrador: 'admin',
-  adm: 'admin',
-  docente: 'docente',
-  doc: 'docente',
-  padre: 'padre',
-  pad: 'padre',
-};
-
-const normalizeRoleKey = (role: string): RoleOption['clave'] => {
-  const normalized = `${role}`.trim().toLowerCase();
-
-  return ROLE_ALIASES[normalized] ?? (normalized as RoleOption['clave']);
-};
 
 const mapRole = (role: ApiRoleDefinition): RoleDefinition => ({
   id: role.id,
@@ -42,7 +27,7 @@ const mapRole = (role: ApiRoleDefinition): RoleDefinition => ({
 const mapRoleOption = (role: ApiRoleOption): RoleOption => ({
   id: role.id,
   nombre: role.nombre,
-  clave: normalizeRoleKey(role.clave),
+  clave: normalizeRole(role.clave),
 });
 
 export async function getRoles(filters: RoleFilters) {

@@ -6,28 +6,11 @@ import type {
   UserFilters,
   UserPayload,
 } from '@/app/types';
+import { normalizeRole } from '@/app/utils/roles';
 
 export const USERS_PAGE_SIZE = 10;
 
 const USERS_ENDPOINT = '/usuarios';
-
-const ROLE_ALIASES: Record<string, ManagedUser['role']> = {
-  admin: 'admin',
-  administrador: 'admin',
-  adm: 'admin',
-  docente: 'docente',
-  doc: 'docente',
-  padre: 'padre',
-  pad: 'padre',
-};
-
-const normalizeRole = (
-  role: ApiManagedUser['role'] | ManagedUser['role'] | string,
-): ManagedUser['role'] => {
-  const normalized = `${role}`.trim().toLowerCase();
-
-  return ROLE_ALIASES[normalized] ?? (normalized as ManagedUser['role']);
-};
 
 const mapUser = (user: ApiManagedUser): ManagedUser => ({
   ...user,

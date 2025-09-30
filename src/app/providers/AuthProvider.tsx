@@ -3,28 +3,13 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import api from '@/app/services/api';
-import type { ApiUser, ApiView, AuthResponse, Role, User, View, ViewCode } from '@/app/types';
+import type { ApiUser, ApiView, AuthResponse, User, View, ViewCode } from '@/app/types';
+import { normalizeRole } from '@/app/utils/roles';
 
 import { AuthContext } from './AuthContext';
 
 type AuthProviderProps = {
   children: ReactNode;
-};
-
-const ROLE_ALIASES: Record<string, Role> = {
-  admin: 'admin',
-  administrador: 'admin',
-  adm: 'admin',
-  docente: 'docente',
-  doc: 'docente',
-  padre: 'padre',
-  pad: 'padre',
-};
-
-const normalizeRole = (role: ApiUser['role'] | Role | string): Role => {
-  const normalized = `${role}`.trim().toLowerCase();
-
-  return ROLE_ALIASES[normalized] ?? (normalized as Role);
 };
 
 const normalizeViewCode = (code: ApiView['codigo'] | View['codigo'] | string) => {
