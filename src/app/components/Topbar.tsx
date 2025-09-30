@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { useAuth } from '@/app/hooks/useAuth';
-import { ROLE_LABELS } from '@/app/utils/roles';
+import { resolveRoleLabel } from '@/app/utils/roles';
 
 type TopbarProps = {
   onToggleSidebar?: () => void;
@@ -18,8 +18,8 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
     const name = typeof user.name === 'string' && user.name.trim() ? user.name.trim() : null;
     const username = typeof user.username === 'string' && user.username.trim() ? user.username.trim() : null;
     const displayNameValue = name ?? username ?? 'Usuario';
-    const normalizedRole = typeof user.role === 'string' ? user.role.trim().toLowerCase() : '';
-    const roleLabelValue = normalizedRole ? ROLE_LABELS[normalizedRole] ?? user.role : '';
+    const roleLabelValue = resolveRoleLabel(user.role) ||
+      (typeof user.role === 'string' && user.role.trim() ? 'Sin rol' : '');
 
     return { displayName: displayNameValue, roleLabel: roleLabelValue };
   }, [user]);

@@ -4,19 +4,14 @@ import { Link } from 'react-router-dom';
 
 import { deleteUser, getUsers, USERS_PAGE_SIZE } from '@/app/services/users';
 import { getRoleOptions } from '@/app/services/roles';
+import { resolveRoleLabel } from '@/app/utils/roles';
 import type { ManagedUser, Role, RoleOption } from '@/app/types';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
 type RoleFilter = Role | 'all';
 
-const formatRoleLabel = (role: Role) => {
-  const trimmed = role.trim();
-  if (!trimmed) {
-    return 'Sin rol';
-  }
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-};
+const formatRoleLabel = (role: Role) => resolveRoleLabel(role) || 'Sin rol';
 
 export default function UsersList() {
   const [page, setPage] = useState(1);
