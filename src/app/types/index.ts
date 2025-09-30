@@ -10,14 +10,52 @@ export type ApiRole =
   | 'Padre'
   | 'PADRE';
 
+export const VIEW_CODES = [
+  'USUARIOS',
+  'ROLES',
+  'DOCENTES',
+  'ASIGNACIONES',
+  'ALERTAS',
+  'NOTAS',
+  'CURSOS',
+  'PLANES',
+  'MATRICULAS',
+  'MATERIAS',
+  'NIVELES',
+  'GESTIONES',
+  'PARALELOS',
+  'REPORTES',
+  'ASISTENCIAS',
+  'AUDITORIA',
+] as const;
+
+export type KnownViewCode = (typeof VIEW_CODES)[number];
+export type ViewCode = KnownViewCode | (string & {});
+
+export interface ApiView {
+  id: number;
+  nombre: string;
+  codigo: string;
+  descripcion?: string | null;
+}
+
+export interface View {
+  id: number;
+  nombre: string;
+  codigo: string;
+  descripcion: string | null;
+}
+
 export interface User {
   id: number;
   name: string;
   role: Role;
+  vistas: View[];
 }
 
-export interface ApiUser extends Omit<User, 'role'> {
+export interface ApiUser extends Omit<User, 'role' | 'vistas'> {
   role: ApiRole;
+  vistas?: (ApiView | View)[];
 }
 
 export interface AuthResponse {
@@ -204,19 +242,9 @@ export interface RoleOption {
   clave: Role;
 }
 
-export interface ApiRoleView {
-  id: number;
-  nombre: string;
-  codigo: string;
-  descripcion?: string | null;
-}
+export type ApiRoleView = ApiView;
 
-export interface RoleView {
-  id: number;
-  nombre: string;
-  codigo: string;
-  descripcion?: string | null;
-}
+export type RoleView = View;
 
 export interface ApiRoleDefinition {
   id: number;

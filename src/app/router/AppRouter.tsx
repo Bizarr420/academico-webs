@@ -4,6 +4,7 @@ import Layout from '@/app/components/Layout';
 import { useAuth } from '@/app/hooks/useAuth';
 import { ProtectedRoute } from '@/app/router/ProtectedRoute';
 import { RoleGuard } from '@/app/router/RoleGuard';
+import { ViewGuard } from '@/app/router/ViewGuard';
 import Dashboard from '@/pages/Dashboard';
 import Login from '@/pages/Login';
 import CourseForm from '@/pages/courses/CourseForm';
@@ -55,9 +56,11 @@ export default function AppRouter() {
             <Route path="usuarios" element={<UsersList />} />
             <Route path="usuarios/nuevo" element={<UserForm />} />
             <Route path="usuarios/:userId/editar" element={<UserForm />} />
-            <Route path="roles" element={<RolesList />} />
-            <Route path="roles/nuevo" element={<RoleForm />} />
-            <Route path="roles/:roleId/editar" element={<RoleForm />} />
+            <Route element={<ViewGuard required="ROLES" />}> 
+              <Route path="roles" element={<RolesList />} />
+              <Route path="roles/nuevo" element={<RoleForm />} />
+              <Route path="roles/:roleId/editar" element={<RoleForm />} />
+            </Route>
             <Route path="auditoria" element={<AuditLog />} />
           </Route>
         </Route>

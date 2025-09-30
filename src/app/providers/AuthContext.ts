@@ -1,10 +1,12 @@
 import { createContext } from 'react';
 
-import type { User } from '@/app/types';
+import type { User, ViewCode } from '@/app/types';
 
 type AuthContextValue = {
   user: User | null;
   isAuthenticated: boolean;
+  views: ViewCode[];
+  hasView: (code: ViewCode) => boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 };
@@ -12,6 +14,8 @@ type AuthContextValue = {
 export const AuthContext = createContext<AuthContextValue>({
   user: null,
   isAuthenticated: false,
+  views: [],
+  hasView: () => false,
   login: async () => {},
   logout: () => {},
 });
