@@ -3,17 +3,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import { deleteUser, getUsers, USERS_PAGE_SIZE } from '@/app/services/users';
-import type { ManagedUser, Role } from '@/app/types';
+import { getRoleOptions } from '@/app/services/roles';
+import type { ManagedUser, Role, RoleOption } from '@/app/types';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-const roleLabels: Record<Role, string> = {
-  admin: 'Administrador',
-  docente: 'Docente',
-  padre: 'Padre',
-};
-
 type RoleFilter = Role | 'all';
+
+const formatRoleLabel = (role: Role) => {
+  const trimmed = role.trim();
+  if (!trimmed) {
+    return 'Sin rol';
+  }
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+};
 
 export default function UsersList() {
   const [page, setPage] = useState(1);
@@ -43,6 +46,21 @@ export default function UsersList() {
     placeholderData: (previousData) => previousData,
   });
 
+  const rolesQuery = useQuery({
+    queryKey: ['role-options'],
+    queryFn: async () => getRoleOptions(),
+  });
+
+  useEffect(() => {
+    if (roleFilter === 'all') {
+      return;
+    }
+    const options = rolesQuery.data ?? [];
+    if (options.every((option) => option.clave !== roleFilter)) {
+      setRoleFilter('all');
+    }
+  }, [roleFilter, rolesQuery.data]);
+
   const users: ManagedUser[] = useMemo(() => data?.items ?? [], [data?.items]);
   const pageSize = data?.page_size ?? USERS_PAGE_SIZE;
   const isEmpty = !isLoading && !isError && users.length === 0;
@@ -63,6 +81,16 @@ export default function UsersList() {
     }
     deleteMutation.mutate(id);
   };
+
+  const roleOptions = useMemo<RoleOption[]>(() => rolesQuery.data ?? [], [rolesQuery.data]);
+  const roleNameByKey = useMemo(
+    () =>
+      roleOptions.reduce<Record<string, string>>((map, option) => {
+        map[option.clave] = option.nombre;
+        return map;
+      }, {}),
+    [roleOptions],
+  );
 
   return (
     <div className="bg-white rounded-2xl shadow p-4">
@@ -100,10 +128,15 @@ export default function UsersList() {
             }}
           >
             <option value="all">Todos</option>
-            <option value="admin">Administrador</option>
-            <option value="docente">Docente</option>
-            <option value="padre">Padre</option>
+            {roleOptions.map((option) => (
+              <option key={option.id} value={option.clave}>
+                {option.nombre}
+              </option>
+            ))}
           </select>
+          {rolesQuery.isError && (
+            <p className="text-sm text-red-600 mt-1">No se pudieron cargar los roles.</p>
+          )}
         </div>
       </div>
 
@@ -128,7 +161,7 @@ export default function UsersList() {
               {users.map((user) => (
                 <tr key={user.id} className="border-b last:border-0">
                   <td className="py-2">{user.username}</td>
-                  <td>{roleLabels[user.role]}</td>
+                  <td>{roleNameByKey[user.role] ?? formatRoleLabel(user.role)}</td>
                   <td>
                     {user.persona
                       ? `${user.persona.apellidos} ${user.persona.nombres}`.trim()

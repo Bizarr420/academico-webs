@@ -16,7 +16,7 @@ const ROLES_ENDPOINT = '/roles';
 const ROLE_OPTIONS_ENDPOINT = '/roles/opciones';
 
 const normalizeRoleKey = (role: string): RoleOption['clave'] => {
-  const normalized = `${role}`.toLowerCase();
+  const normalized = `${role}`.trim().toLowerCase();
   if (normalized === 'administrador' || normalized === 'admin') {
     return 'admin';
   }

@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'docente' | 'padre';
+export type Role = 'admin' | 'docente' | 'padre' | (string & {});
 
 export type ApiRole =
   | Role

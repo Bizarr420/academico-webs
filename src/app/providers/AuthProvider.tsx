@@ -12,7 +12,7 @@ type AuthProviderProps = {
 };
 
 const normalizeRole = (role: ApiUser['role'] | Role | string): Role => {
-  const normalized = `${role}`.toLowerCase();
+  const normalized = `${role}`.trim().toLowerCase();
   if (normalized === 'admin' || normalized === 'administrador') {
     return 'admin';
   }
@@ -23,8 +23,7 @@ const normalizeRole = (role: ApiUser['role'] | Role | string): Role => {
     return 'padre';
   }
 
-  console.warn(`Rol desconocido recibido: ${role}. Se usará "admin" por defecto.`);
-  return 'admin';
+  return normalized as Role;
 };
 
 const normalizeViews = (views?: (ApiView | View)[] | null): View[] => {

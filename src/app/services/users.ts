@@ -12,7 +12,7 @@ export const USERS_PAGE_SIZE = 10;
 const USERS_ENDPOINT = '/usuarios';
 
 const normalizeRole = (role: ApiManagedUser['role'] | ManagedUser['role'] | string): ManagedUser['role'] => {
-  const normalized = `${role}`.toLowerCase();
+  const normalized = `${role}`.trim().toLowerCase();
   if (normalized === 'admin' || normalized === 'administrador') {
     return 'admin';
   }
@@ -22,8 +22,7 @@ const normalizeRole = (role: ApiManagedUser['role'] | ManagedUser['role'] | stri
   if (normalized === 'padre') {
     return 'padre';
   }
-  console.warn(`Rol desconocido recibido: ${role}. Se usará "admin" por defecto.`);
-  return 'admin';
+  return normalized as ManagedUser['role'];
 };
 
 const mapUser = (user: ApiManagedUser): ManagedUser => ({
