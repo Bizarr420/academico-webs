@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import api, { withTrailingSlash } from '@/app/services/api';
+import api from '@/app/services/api';
 import type { ApiUser, ApiView, AuthResponse, Role, User, View, ViewCode } from '@/app/types';
 
 import { AuthContext } from './AuthContext';
@@ -87,7 +87,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     formData.append('password', password);
 
     const { data } = await api.post<AuthResponse>(
-      withTrailingSlash('/auth/login'),
+      '/auth/login',
       formData,
       {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
