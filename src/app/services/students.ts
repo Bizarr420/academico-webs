@@ -1,4 +1,4 @@
-import api, { withTrailingSlash } from '@/app/services/api';
+import api, { withAuth } from '@/app/services/api';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type { Paginated, PaginatedResponse, Student, StudentFilters, StudentPayload } from '@/app/types';
 
@@ -17,27 +17,25 @@ export async function getStudents(filters: StudentFilters): Promise<Paginated<St
     params.search = search.trim();
   }
 
-  const { data } = await api.get<PaginatedResponse<Student>>(withTrailingSlash(STUDENTS_ENDPOINT), {
-    params,
-  });
+  const { data } = await api.get<PaginatedResponse<Student>>(STUDENTS_ENDPOINT, withAuth({ params }));
   return normalizePaginatedResponse(data);
 }
 
 export async function createStudent(payload: StudentPayload) {
-  const { data } = await api.post<Student>(withTrailingSlash(STUDENTS_ENDPOINT), payload);
+  const { data } = await api.post<Student>(STUDENTS_ENDPOINT, payload, withAuth());
   return data;
 }
 
 export async function getStudent(id: number) {
-  const { data } = await api.get<Student>(`${STUDENTS_ENDPOINT}/${id}`);
+  const { data } = await api.get<Student>(`${STUDENTS_ENDPOINT}/${id}`, withAuth());
   return data;
 }
 
 export async function updateStudent(id: number, payload: StudentPayload) {
-  const { data } = await api.put<Student>(`${STUDENTS_ENDPOINT}/${id}`, payload);
+  const { data } = await api.patch<Student>(`${STUDENTS_ENDPOINT}/${id}`, payload, withAuth());
   return data;
 }
 
 export async function deleteStudent(id: number) {
-  await api.delete(`${STUDENTS_ENDPOINT}/${id}`);
+  await api.delete(`${STUDENTS_ENDPOINT}/${id}`, withAuth());
 }

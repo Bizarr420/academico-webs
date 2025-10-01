@@ -69,7 +69,7 @@ export default function TeachersList() {
         </label>
         <input
           id="teachers-search"
-          placeholder="Buscar por nombre o CI…"
+          placeholder="Buscar por persona…"
           className="border rounded px-3 py-2 w-full"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -86,26 +86,31 @@ export default function TeachersList() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b">
-                <th className="py-2">CI</th>
-                <th>Nombre</th>
-                <th>Especialidad</th>
-                <th>Materias</th>
+                <th className="py-2">Persona</th>
+                <th>ID Persona</th>
+                <th>Título</th>
+                <th>Profesión</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {teachers.map((teacher) => (
                 <tr key={teacher.id} className="border-b last:border-0">
-                  <td className="py-2">{teacher.ci || '-'}</td>
-                  <td>
-                    {teacher.apellidos} {teacher.nombres}
+                  <td className="py-2">
+                    {(() => {
+                      const persona = teacher.persona;
+                      if (!persona) {
+                        return 'Sin información';
+                      }
+                      const parts = [persona.apellidos, persona.nombres]
+                        .map((part) => part?.trim?.() ?? '')
+                        .filter((part) => part.length > 0);
+                      return parts.length > 0 ? parts.join(' ') : `Persona ${teacher.persona_id}`;
+                    })()}
                   </td>
-                  <td>{teacher.especialidad || '-'}</td>
-                  <td>
-                    {teacher.materias && teacher.materias.length > 0
-                      ? teacher.materias.map((subject) => subject.nombre).join(', ')
-                      : '-'}
-                  </td>
+                  <td>{teacher.persona_id}</td>
+                  <td>{teacher.titulo ?? '-'}</td>
+                  <td>{teacher.profesion ?? '-'}</td>
                   <td>
                     <div className="flex gap-2">
                       <Link
