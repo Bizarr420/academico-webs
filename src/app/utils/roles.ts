@@ -24,7 +24,15 @@ const sanitizeRole = (value: string): string => {
   return candidate.replace(/\s+/g, ' ').trim();
 };
 
-const INVALID_ROLE_VALUES = new Set(['', 'undefined', 'null', 'none', 'ninguno']);
+const INVALID_ROLE_VALUES = new Set([
+  '',
+  'undefined',
+  'null',
+  'none',
+  'ninguno',
+  'sin rol',
+  'sinrol',
+]);
 
 export const normalizeRole = (role: Role | string | null | undefined): Role | null => {
   if (role === null || role === undefined) {

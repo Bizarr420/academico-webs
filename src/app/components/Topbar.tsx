@@ -25,16 +25,11 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
       : [];
 
     const resolvedRoleLabel =
-      roleLabels.length > 0
-        ? roleLabels.join(' • ')
-        : resolveRoleLabel(user.role) ||
-            (typeof user.role === 'string' && user.role.trim()
-              ? 'Sin rol'
-              : user.role === null
-                ? 'Sin rol'
-                : '');
+      roleLabels.length > 0 ? roleLabels.join(' • ') : resolveRoleLabel(user.role);
 
-    const roleLabelValue = resolvedRoleLabel ? resolvedRoleLabel.toUpperCase() : '';
+    const roleLabelValue = resolvedRoleLabel && resolvedRoleLabel.trim()
+      ? resolvedRoleLabel.toUpperCase()
+      : '';
 
     return { displayName: displayNameValue, roleLabel: roleLabelValue };
   }, [user]);
