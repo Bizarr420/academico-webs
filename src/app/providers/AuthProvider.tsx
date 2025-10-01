@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -58,6 +58,7 @@ const normalizeUser = (user: ApiUser | User): User => {
 export default function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const hasInitializedRef = useRef(false);
   const navigate = useNavigate();
 
   const persistUser = useCallback((value: User | null) => {
@@ -88,6 +89,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   }, [persistUser]);
 
   useEffect(() => {
+    if (hasInitializedRef.current) {
+      return;
+    }
+
+    hasInitializedRef.current = true;
+
     const saved = localStorage.getItem('user');
     if (saved) {
       try {
