@@ -118,7 +118,7 @@ export const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
 export interface Student {
   id: number;
   persona_id: number;
-  codigo_est: string;
+  codigo_rude: string;
   anio_ingreso: number | null;
   situacion: StudentSituation | null;
   estado: StudentStatus | null;
@@ -136,13 +136,15 @@ type PersonAssociationPayload =
     };
 
 export type StudentPayload = PersonAssociationPayload & {
-  codigo_est: string;
+  codigo_rude: string;
   anio_ingreso?: number | null;
   situacion?: StudentSituation | null;
   estado?: StudentStatus | null;
 };
 
-export type StudentFilters = PaginationFilters;
+export interface StudentFilters extends PaginationFilters {
+  codigo_rude?: string;
+}
 
 export const SEX_CODES = ['M', 'F', 'X'] as const;
 export type Sexo = (typeof SEX_CODES)[number];

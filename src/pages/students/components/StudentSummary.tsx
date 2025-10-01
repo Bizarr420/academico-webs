@@ -43,8 +43,8 @@ export function StudentSummary({ student, className }: StudentSummaryProps) {
       <div className="grid gap-4 md:grid-cols-2">
         <dl className="space-y-2 text-sm">
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Código</dt>
-            <dd className="text-base font-semibold text-gray-900">{student.codigo_est}</dd>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Código RUDE</dt>
+            <dd className="text-base font-semibold text-gray-900">{student.codigo_rude}</dd>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Año de ingreso</dt>

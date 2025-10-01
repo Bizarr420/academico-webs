@@ -42,7 +42,7 @@ type PersonFormState = {
 type StudentFormState = {
   personMode: PersonMode;
   persona_id: string;
-  codigo_est: string;
+  codigo_rude: string;
   anio_ingreso: string;
   situacion: '' | StudentSituation;
   estado: '' | StudentStatus;
@@ -53,17 +53,17 @@ type PersonFieldErrors = Partial<Record<keyof PersonFormState, string>>;
 
 type FieldErrors = {
   persona_id?: string;
-  codigo_est?: string;
+  codigo_rude?: string;
   anio_ingreso?: string;
   situacion?: string;
   estado?: string;
   persona?: PersonFieldErrors;
 };
 
-const codigoEstSchema = z
+const codigoRudeSchema = z
   .string()
   .trim()
-  .min(1, 'Ingresa el código del estudiante.')
+  .min(1, 'Ingresa el código RUDE del estudiante.')
   .max(50, 'Máximo 50 caracteres.');
 
 const personSchema = z.object({
@@ -93,11 +93,11 @@ const studentSchema = z.discriminatedUnion('personMode', [
       })
       .int('El ID de la persona debe ser un número entero.')
       .positive('El ID de la persona debe ser mayor a 0.'),
-    codigo_est: codigoEstSchema,
+    codigo_rude: codigoRudeSchema,
   }),
   z.object({
     personMode: z.literal('new'),
-    codigo_est: codigoEstSchema,
+    codigo_rude: codigoRudeSchema,
     persona: personSchema,
   }),
 ]);
@@ -117,7 +117,7 @@ const createEmptyPerson = (): PersonFormState => ({
 const createInitialFormState = (): StudentFormState => ({
   personMode: 'existing',
   persona_id: '',
-  codigo_est: '',
+  codigo_rude: '',
   anio_ingreso: String(new Date().getFullYear()),
   situacion: '',
   estado: '',
@@ -209,7 +209,7 @@ export default function StudentForm() {
       setForm({
         personMode: 'existing',
         persona_id: String(studentQuery.data.persona_id ?? ''),
-        codigo_est: studentQuery.data.codigo_est ?? '',
+        codigo_rude: studentQuery.data.codigo_rude ?? '',
         anio_ingreso: studentQuery.data.anio_ingreso
           ? String(studentQuery.data.anio_ingreso)
           : '',
@@ -255,8 +255,11 @@ export default function StudentForm() {
         }
 
         if (error.response.status === 400) {
-          if (normalizedDetail.includes('codigo_est') && (normalizedDetail.includes('existe') || normalizedDetail.includes('registrad'))) {
-            setFieldErrors((previous) => ({ ...previous, codigo_est: 'El código de estudiante ya está registrado.' }));
+          if (normalizedDetail.includes('codigo_rude') && (normalizedDetail.includes('existe') || normalizedDetail.includes('registrad'))) {
+            setFieldErrors((previous) => ({
+              ...previous,
+              codigo_rude: 'El código RUDE del estudiante ya está registrado.',
+            }));
             setSubmitError('');
             return;
           }
@@ -325,7 +328,7 @@ export default function StudentForm() {
     event.preventDefault();
     setSubmitError('');
 
-    const trimmedCodigo = form.codigo_est.trim();
+    const trimmedCodigo = form.codigo_rude.trim();
     const trimmedAnioIngreso = form.anio_ingreso.trim();
     const selectedSituacion = form.situacion;
     const selectedEstado = form.estado;
@@ -346,12 +349,12 @@ export default function StudentForm() {
         ? {
             personMode: 'existing' as const,
             persona_id: form.persona_id.trim(),
-            codigo_est: trimmedCodigo,
+            codigo_rude: trimmedCodigo,
           }
         : {
             personMode: 'new' as const,
-            codigo_est: trimmedCodigo,
-          persona: personaInput,
+            codigo_rude: trimmedCodigo,
+            persona: personaInput,
         };
 
     const result = studentSchema.safeParse(payloadInput);
@@ -403,7 +406,7 @@ export default function StudentForm() {
     if (result.data.personMode === 'existing') {
       payload = {
         persona_id: result.data.persona_id,
-        codigo_est: result.data.codigo_est,
+        codigo_rude: result.data.codigo_rude,
       };
     } else {
       const personaPayload: PersonPayload = {
@@ -431,7 +434,7 @@ export default function StudentForm() {
       }
 
       payload = {
-        codigo_est: result.data.codigo_est,
+        codigo_rude: result.data.codigo_rude,
         persona: personaPayload,
       };
     }
@@ -452,7 +455,7 @@ export default function StudentForm() {
     mutation.mutate(payload);
   };
 
-  const updateTopLevelField = (field: 'persona_id' | 'codigo_est' | 'anio_ingreso') => (value: string) => {
+  const updateTopLevelField = (field: 'persona_id' | 'codigo_rude' | 'anio_ingreso') => (value: string) => {
     setSubmitError('');
     clearTopLevelError(field);
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -739,16 +742,18 @@ export default function StudentForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-600" htmlFor="student-codigo">
-              Código de estudiante
+              Código RUDE del estudiante
             </label>
             <input
               id="student-codigo"
               className="w-full border rounded px-3 py-2"
-              value={form.codigo_est}
-              onChange={(event) => updateTopLevelField('codigo_est')(event.target.value)}
+              value={form.codigo_rude}
+              onChange={(event) => updateTopLevelField('codigo_rude')(event.target.value)}
               maxLength={50}
             />
-            {fieldErrors.codigo_est && <p className="text-sm text-red-600 mt-1">{fieldErrors.codigo_est}</p>}
+            {fieldErrors.codigo_rude && (
+              <p className="text-sm text-red-600 mt-1">{fieldErrors.codigo_rude}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600" htmlFor="student-anio-ingreso">
