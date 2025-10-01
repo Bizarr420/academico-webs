@@ -160,7 +160,7 @@ const collectViews = (sources: unknown[]): (ApiView | View)[] => {
   return dedupeViews(aggregated);
 };
 
-const ROLE_KEY_PATTERN = /(role|rol)/u;
+const ROLE_KEY_PATTERN = /(?:^|[\s._-])(rol|role|roles|perfil(?:es)?|profile|profiles|cargo|tipo[\s._-]*usuario(?:s)?|user[\s._-]*type(?:s)?)(?:$|[\s._-])/iu;
 
 const collectRoles = (sources: unknown[]): Role[] => {
   const roles = new Set<Role>();
@@ -189,7 +189,11 @@ const collectRoles = (sources: unknown[]): Role[] => {
           return;
         }
 
-        if (ROLE_KEY_PATTERN.test(key.toLowerCase())) {
+        const normalizedKey = key
+          .replace(/([a-z])([A-Z])/g, '$1_$2')
+          .toLowerCase();
+
+        if (ROLE_KEY_PATTERN.test(normalizedKey)) {
           visit(item);
         }
       });
