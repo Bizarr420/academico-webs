@@ -54,11 +54,13 @@ export interface User {
   username?: string | null;
   email?: string | null;
   role: Role | null;
+  roles: Role[];
   vistas: View[];
 }
 
-export interface ApiUser extends Omit<User, 'role' | 'vistas'> {
-  role?: ApiRole;
+export interface ApiUser extends Omit<User, 'role' | 'roles' | 'vistas'> {
+  role?: ApiRole | null;
+  roles?: ApiRole[] | null;
   vistas?: (ApiView | View)[] | null;
 }
 
@@ -214,12 +216,14 @@ export interface ManagedUser {
   name?: string | null;
   email?: string | null;
   role: Role | null;
+  roles: Role[];
   persona?: Person | null;
   persona_id?: number | null;
 }
 
-export interface ApiManagedUser extends Omit<ManagedUser, 'role'> {
-  role?: ApiRole;
+export interface ApiManagedUser extends Omit<ManagedUser, 'role' | 'roles'> {
+  role?: ApiRole | null;
+  roles?: ApiRole[] | null;
 }
 
 export interface UserPayload {

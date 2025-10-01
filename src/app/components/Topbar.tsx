@@ -18,13 +18,21 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
     const name = typeof user.name === 'string' && user.name.trim() ? user.name.trim() : null;
     const username = typeof user.username === 'string' && user.username.trim() ? user.username.trim() : null;
     const displayNameValue = name ?? username ?? 'Usuario';
+    const roleLabels = Array.isArray(user.roles)
+      ? user.roles
+          .map((role) => resolveRoleLabel(role))
+          .filter((label): label is string => Boolean(label && label.trim()))
+      : [];
+
     const resolvedRoleLabel =
-      resolveRoleLabel(user.role) ||
-      (typeof user.role === 'string' && user.role.trim()
-        ? 'Sin rol'
-        : user.role === null
-          ? 'Sin rol'
-          : '');
+      roleLabels.length > 0
+        ? roleLabels.join(' • ')
+        : resolveRoleLabel(user.role) ||
+            (typeof user.role === 'string' && user.role.trim()
+              ? 'Sin rol'
+              : user.role === null
+                ? 'Sin rol'
+                : '');
 
     const roleLabelValue = resolvedRoleLabel ? resolvedRoleLabel.toUpperCase() : '';
 

@@ -8,7 +8,18 @@ import type { ManagedUser } from '@/app/types';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-const formatRoleLabel = (role: ManagedUser['role']) => resolveRoleLabel(role) || 'Sin rol';
+const formatRoleLabel = (user: ManagedUser) => {
+  if (Array.isArray(user.roles) && user.roles.length > 0) {
+    const labels = user.roles
+      .map((role) => resolveRoleLabel(role))
+      .filter((label): label is string => Boolean(label && label.trim()));
+    if (labels.length > 0) {
+      return labels.join(', ');
+    }
+  }
+
+  return resolveRoleLabel(user.role) || 'Sin rol';
+};
 
 export default function UsersList() {
   const [page, setPage] = useState(1);
@@ -102,7 +113,7 @@ export default function UsersList() {
               {users.map((user) => (
                 <tr key={user.id} className="border-b last:border-0">
                   <td className="py-2">{user.username}</td>
-                  <td>{formatRoleLabel(user.role)}</td>
+                  <td>{formatRoleLabel(user)}</td>
                   <td>
                     {user.persona
                       ? `${user.persona.apellidos} ${user.persona.nombres}`.trim()

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { authLogin, authLogout, fetchCurrentUser } from '@/app/services/auth';
-import type { ApiUser, ApiView, User, View, ViewCode } from '@/app/types';
+import type { ApiUser, ApiView, Role, User, View, ViewCode } from '@/app/types';
 import { normalizeRole } from '@/app/utils/roles';
 import { normalizeViews } from '@/app/utils/views';
 
@@ -14,8 +14,9 @@ type AuthProviderProps = {
 };
 
 const normalizeUser = (user: ApiUser | User): User => {
-  const { role, vistas, name, username, email, ...rest } = user as ApiUser & {
+  const { role, roles, vistas, name, username, email, ...rest } = user as ApiUser & {
     vistas?: (ApiView | View)[];
+    roles?: (Role | string | null | undefined)[] | null;
     username?: string | null;
     email?: string | null;
     name?: string | null;
@@ -26,13 +27,30 @@ const normalizeUser = (user: ApiUser | User): User => {
   const displayName = trimmedName || trimmedUsername || 'Usuario';
 
   const normalizedRole = normalizeRole(role);
+  const normalizedRolesSet = new Set<Role>();
+
+  if (Array.isArray(roles)) {
+    roles.forEach((value) => {
+      const normalized = normalizeRole(value ?? undefined);
+      if (normalized) {
+        normalizedRolesSet.add(normalized);
+      }
+    });
+  }
+
+  if (normalizedRole) {
+    normalizedRolesSet.add(normalizedRole);
+  }
+
+  const normalizedRoles = Array.from(normalizedRolesSet);
 
   return {
     ...rest,
     name: displayName,
     username: trimmedUsername || null,
     email: typeof email === 'string' ? email : null,
-    role: normalizedRole,
+    role: normalizedRole ?? normalizedRoles[0] ?? null,
+    roles: normalizedRoles,
     vistas: normalizeViews(vistas),
   };
 };
@@ -138,9 +156,22 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     return user.vistas.map((view) => view.codigo as ViewCode);
   }, [user]);
 
+  const roles = useMemo<Role[]>(() => (user ? user.roles : []), [user]);
+
   const hasView = useCallback(
     (code: ViewCode) => views.includes(code),
     [views],
+  );
+
+  const hasRole = useCallback(
+    (role: Role | string) => {
+      const normalized = normalizeRole(role);
+      if (!normalized) {
+        return false;
+      }
+      return roles.includes(normalized);
+    },
+    [roles],
   );
 
   const value = useMemo(
@@ -149,12 +180,14 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: user !== null,
       views,
       hasView,
+      roles,
+      hasRole,
       login,
       logout,
       refreshUser,
       isLoading,
     }),
-    [hasView, isLoading, login, logout, refreshUser, user, views],
+    [hasRole, hasView, isLoading, login, logout, refreshUser, roles, user, views],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

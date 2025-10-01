@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-import type { User, ViewCode } from '@/app/types';
+import type { Role, User, ViewCode } from '@/app/types';
 
 type AuthContextValue = {
   user: User | null;
@@ -8,6 +8,8 @@ type AuthContextValue = {
   isLoading: boolean;
   views: ViewCode[];
   hasView: (code: ViewCode) => boolean;
+  roles: Role[];
+  hasRole: (role: Role | string) => boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void> | void;
   refreshUser: () => Promise<User | null>;
@@ -19,6 +21,8 @@ export const AuthContext = createContext<AuthContextValue>({
   isLoading: true,
   views: [],
   hasView: () => false,
+  roles: [],
+  hasRole: () => false,
   login: async () => {},
   logout: async () => {},
   refreshUser: async () => null,
