@@ -8,7 +8,9 @@ export type ApiRole =
   | 'Docente'
   | 'DOCENTE'
   | 'Padre'
-  | 'PADRE';
+  | 'PADRE'
+  | null
+  | undefined;
 
 export const VIEW_CODES = [
   'USUARIOS',
@@ -51,13 +53,13 @@ export interface User {
   name: string;
   username?: string | null;
   email?: string | null;
-  role: Role;
+  role: Role | null;
   vistas: View[];
 }
 
 export interface ApiUser extends Omit<User, 'role' | 'vistas'> {
-  role: ApiRole;
-  vistas?: (ApiView | View)[];
+  role?: ApiRole;
+  vistas?: (ApiView | View)[] | null;
 }
 
 export interface AuthResponse {
@@ -211,65 +213,24 @@ export interface ManagedUser {
   username: string;
   name?: string | null;
   email?: string | null;
-  role: Role;
+  role: Role | null;
   persona?: Person | null;
   persona_id?: number | null;
 }
 
 export interface ApiManagedUser extends Omit<ManagedUser, 'role'> {
-  role: ApiRole;
+  role?: ApiRole;
 }
 
 export interface UserPayload {
   username: string;
-  role: Role;
   persona_id: number;
   email?: string;
   password?: string;
 }
 
 export interface UserFilters extends PaginationFilters {
-  role?: Role;
-}
-
-export interface ApiRoleOption {
-  id: number;
-  nombre: string;
-  clave: string;
-}
-
-export interface RoleOption {
-  id: number;
-  nombre: string;
-  clave: Role;
-}
-
-export type ApiRoleView = ApiView;
-
-export type RoleView = View;
-
-export interface ApiRoleDefinition {
-  id: number;
-  nombre: string;
-  descripcion?: string | null;
-  vistas?: ApiRoleView[];
-  vista_ids?: number[];
-}
-
-export interface RoleDefinition {
-  id: number;
-  nombre: string;
-  descripcion?: string | null;
-  vistas: RoleView[];
-  vista_ids: number[];
-}
-
-export type RoleFilters = PaginationFilters;
-
-export interface RolePayload {
-  nombre: string;
-  descripcion?: string;
-  vista_ids: number[];
+  role?: Role | null;
 }
 
 export interface ApiAuditLogEntry {

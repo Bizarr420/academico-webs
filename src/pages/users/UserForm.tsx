@@ -5,13 +5,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { getAllPeople } from '@/app/services/people';
-import { getRoleOptions } from '@/app/services/roles';
 import { createUser, getUser, updateUser } from '@/app/services/users';
-import type { Person, Role, RoleOption, UserPayload } from '@/app/types';
+import type { Person, UserPayload } from '@/app/types';
 
 const userSchema = z.object({
   username: z.string().min(3, 'Ingresa el nombre de usuario'),
-  role: z.string().min(1, 'Selecciona un rol'),
   persona_id: z.number().int('Selecciona una persona').min(1, 'Selecciona una persona'),
   email: z.string().email('Ingresa un correo válido').optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
@@ -19,7 +17,6 @@ const userSchema = z.object({
 
 type UserFormState = {
   username: string;
-  role: Role;
   personaId: string;
   email: string;
   password: string;
@@ -27,7 +24,6 @@ type UserFormState = {
 
 type FieldErrors = Partial<{
   username: string;
-  role: string;
   persona_id: string;
   email: string;
   password: string;
@@ -35,7 +31,6 @@ type FieldErrors = Partial<{
 
 const initialValues: UserFormState = {
   username: '',
-  role: '' as Role,
   personaId: '',
   email: '',
   password: '',
@@ -55,11 +50,6 @@ export default function UserForm() {
     queryFn: async () => getAllPeople(),
   });
 
-  const rolesQuery = useQuery({
-    queryKey: ['role-options'],
-    queryFn: async () => getRoleOptions(),
-  });
-
   const userQuery = useQuery({
     queryKey: ['user', userId],
     queryFn: async () => (userId ? getUser(Number(userId)) : null),
@@ -70,24 +60,12 @@ export default function UserForm() {
     if (userQuery.data) {
       setForm({
         username: userQuery.data.username,
-        role: userQuery.data.role,
         personaId: userQuery.data.persona?.id?.toString() ?? userQuery.data.persona_id?.toString() ?? '',
         email: userQuery.data.email ?? '',
         password: '',
       });
     }
   }, [userQuery.data]);
-
-  useEffect(() => {
-    if (!isEditing && rolesQuery.data && rolesQuery.data.length > 0) {
-      setForm((previous) => {
-        if (previous.role && rolesQuery.data?.some((option) => option.clave === previous.role)) {
-          return previous;
-        }
-        return { ...previous, role: rolesQuery.data[0].clave };
-      });
-    }
-  }, [isEditing, rolesQuery.data]);
 
   const mutation = useMutation({
     mutationFn: async (payload: UserPayload) =>
@@ -117,7 +95,6 @@ export default function UserForm() {
 
     const result = userSchema.safeParse({
       username: form.username.trim(),
-      role: form.role,
       persona_id: Number.isNaN(personaIdNumber) ? 0 : personaIdNumber,
       email: form.email.trim() || undefined,
       password: form.password.trim() || undefined,
@@ -143,7 +120,6 @@ export default function UserForm() {
     setFieldErrors({});
     const payload: UserPayload = {
       username: result.data.username,
-      role: result.data.role as Role,
       persona_id: result.data.persona_id,
       email: result.data.email,
       password: result.data.password,
@@ -191,15 +167,6 @@ export default function UserForm() {
     });
   }, [peopleQuery.data]);
 
-  const roleOptions = useMemo<RoleOption[]>(() => {
-    const options = rolesQuery.data ?? [];
-    if (form.role && options.every((option) => option.clave !== form.role)) {
-      return [...options, { id: -1, nombre: form.role, clave: form.role }];
-    }
-    return options;
-  }, [form.role, rolesQuery.data]);
-  const roleSelectDisabled = rolesQuery.isLoading || roleOptions.length === 0;
-
   return (
     <div className="bg-white rounded-2xl shadow p-4 max-w-2xl">
       <h1 className="text-lg font-semibold mb-4">{title}</h1>
@@ -216,31 +183,6 @@ export default function UserForm() {
               onChange={(event) => updateField('username')(event.target.value)}
             />
             {fieldErrors.username && <p className="text-sm text-red-600 mt-1">{fieldErrors.username}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600" htmlFor="user-role">
-              Rol
-            </label>
-            <select
-              id="user-role"
-              className="w-full border rounded px-3 py-2"
-              value={form.role}
-              onChange={(event) => updateField('role')(event.target.value as Role)}
-              disabled={roleSelectDisabled}
-            >
-              {roleOptions.map((option) => (
-                <option key={option.id} value={option.clave}>
-                  {option.nombre}
-                </option>
-              ))}
-            </select>
-            {rolesQuery.isError && (
-              <p className="text-sm text-red-600 mt-1">No se pudieron cargar los roles.</p>
-            )}
-            {!rolesQuery.isLoading && !rolesQuery.isError && roleOptions.length === 0 && (
-              <p className="text-sm text-gray-500 mt-1">No hay roles disponibles.</p>
-            )}
-            {fieldErrors.role && <p className="text-sm text-red-600 mt-1">{fieldErrors.role}</p>}
           </div>
         </div>
         <div>

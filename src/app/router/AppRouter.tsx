@@ -3,8 +3,6 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from '@/app/components/Layout';
 import { useAuth } from '@/app/hooks/useAuth';
 import { ProtectedRoute } from '@/app/router/ProtectedRoute';
-import { RoleGuard } from '@/app/router/RoleGuard';
-import { ViewGuard } from '@/app/router/ViewGuard';
 import Dashboard from '@/pages/Dashboard';
 import Login from '@/pages/Login';
 import CourseForm from '@/pages/courses/CourseForm';
@@ -19,8 +17,6 @@ import PeopleList from '@/pages/people/PeopleList';
 import PersonForm from '@/pages/people/PersonForm';
 import UsersList from '@/pages/users/UsersList';
 import UserForm from '@/pages/users/UserForm';
-import RolesList from '@/pages/roles/RolesList';
-import RoleForm from '@/pages/roles/RoleForm';
 import AuditLog from '@/pages/audit/AuditLog';
 
 export default function AppRouter() {
@@ -34,35 +30,25 @@ export default function AppRouter() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
 
-          <Route element={<RoleGuard allowed={['admin', 'docente']} />}>
-            <Route path="estudiantes" element={<StudentsList />} />
-            <Route path="estudiantes/nuevo" element={<StudentForm />} />
-            <Route path="estudiantes/:studentId/editar" element={<StudentForm />} />
-          </Route>
-
-          <Route element={<RoleGuard allowed={['admin']} />}>
-            <Route path="docentes" element={<TeachersList />} />
-            <Route path="docentes/nuevo" element={<TeacherForm />} />
-            <Route path="docentes/:teacherId/editar" element={<TeacherForm />} />
-            <Route path="personas" element={<PeopleList />} />
-            <Route path="personas/nuevo" element={<PersonForm />} />
-            <Route path="personas/:personId/editar" element={<PersonForm />} />
-            <Route path="cursos" element={<CoursesList />} />
-            <Route path="cursos/nuevo" element={<CourseForm />} />
-            <Route path="cursos/:courseId/editar" element={<CourseForm />} />
-            <Route path="materias" element={<SubjectsList />} />
-            <Route path="materias/nuevo" element={<SubjectForm />} />
-            <Route path="materias/:subjectId/editar" element={<SubjectForm />} />
-            <Route path="usuarios" element={<UsersList />} />
-            <Route path="usuarios/nuevo" element={<UserForm />} />
-            <Route path="usuarios/:userId/editar" element={<UserForm />} />
-            <Route element={<ViewGuard required="ROLES" />}> 
-              <Route path="roles" element={<RolesList />} />
-              <Route path="roles/nuevo" element={<RoleForm />} />
-              <Route path="roles/:roleId/editar" element={<RoleForm />} />
-            </Route>
-            <Route path="auditoria" element={<AuditLog />} />
-          </Route>
+          <Route path="estudiantes" element={<StudentsList />} />
+          <Route path="estudiantes/nuevo" element={<StudentForm />} />
+          <Route path="estudiantes/:studentId/editar" element={<StudentForm />} />
+          <Route path="docentes" element={<TeachersList />} />
+          <Route path="docentes/nuevo" element={<TeacherForm />} />
+          <Route path="docentes/:teacherId/editar" element={<TeacherForm />} />
+          <Route path="personas" element={<PeopleList />} />
+          <Route path="personas/nuevo" element={<PersonForm />} />
+          <Route path="personas/:personId/editar" element={<PersonForm />} />
+          <Route path="cursos" element={<CoursesList />} />
+          <Route path="cursos/nuevo" element={<CourseForm />} />
+          <Route path="cursos/:courseId/editar" element={<CourseForm />} />
+          <Route path="materias" element={<SubjectsList />} />
+          <Route path="materias/nuevo" element={<SubjectForm />} />
+          <Route path="materias/:subjectId/editar" element={<SubjectForm />} />
+          <Route path="usuarios" element={<UsersList />} />
+          <Route path="usuarios/nuevo" element={<UserForm />} />
+          <Route path="usuarios/:userId/editar" element={<UserForm />} />
+          <Route path="auditoria" element={<AuditLog />} />
         </Route>
       </Route>
 
