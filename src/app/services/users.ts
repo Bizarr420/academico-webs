@@ -1,8 +1,10 @@
 import api, { withTrailingSlash } from '@/app/services/api';
+import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type {
   ApiManagedUser,
   ManagedUser,
   Paginated,
+  PaginatedResponse,
   Role,
   UserFilters,
   UserPayload,
@@ -45,7 +47,7 @@ const mapUser = (user: ApiManagedUser): ManagedUser => {
   };
 };
 
-export async function getUsers(filters: UserFilters) {
+export async function getUsers(filters: UserFilters): Promise<Paginated<ManagedUser>> {
   const { page, search, page_size = USERS_PAGE_SIZE, role } = filters;
   const params: Record<string, unknown> = {
     page,
@@ -60,12 +62,13 @@ export async function getUsers(filters: UserFilters) {
     params.role = role;
   }
 
-  const { data } = await api.get<Paginated<ApiManagedUser>>(withTrailingSlash(USERS_ENDPOINT), {
+  const { data } = await api.get<PaginatedResponse<ApiManagedUser>>(withTrailingSlash(USERS_ENDPOINT), {
     params,
   });
+  const normalized = normalizePaginatedResponse(data);
   return {
-    ...data,
-    items: data.items.map(mapUser),
+    ...normalized,
+    items: normalized.items.map(mapUser),
   };
 }
 

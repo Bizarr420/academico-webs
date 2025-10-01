@@ -77,7 +77,19 @@ export interface Paginated<TItem> {
   page_size: number;
 }
 
-export type PaginatedResponse<TItem> = Paginated<TItem> | TItem[];
+export interface LegacyPaginated<TItem> {
+  items?: TItem[];
+  results?: TItem[];
+  data?: TItem[];
+  total?: number;
+  count?: number;
+  page?: number;
+  current_page?: number;
+  page_size?: number;
+  per_page?: number;
+}
+
+export type PaginatedResponse<TItem> = Paginated<TItem> | TItem[] | LegacyPaginated<TItem>;
 
 export interface PaginationFilters {
   page: number;

@@ -1,11 +1,12 @@
 import api, { withTrailingSlash } from '@/app/services/api';
-import type { Paginated, Student, StudentFilters, StudentPayload } from '@/app/types';
+import { normalizePaginatedResponse } from '@/app/services/pagination';
+import type { Paginated, PaginatedResponse, Student, StudentFilters, StudentPayload } from '@/app/types';
 
 export const STUDENTS_PAGE_SIZE = 10;
 
 const STUDENTS_ENDPOINT = '/estudiantes';
 
-export async function getStudents(filters: StudentFilters) {
+export async function getStudents(filters: StudentFilters): Promise<Paginated<Student>> {
   const { page, search, page_size = STUDENTS_PAGE_SIZE } = filters;
   const params: Record<string, unknown> = {
     page,
@@ -16,10 +17,10 @@ export async function getStudents(filters: StudentFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<Student>>(withTrailingSlash(STUDENTS_ENDPOINT), {
+  const { data } = await api.get<PaginatedResponse<Student>>(withTrailingSlash(STUDENTS_ENDPOINT), {
     params,
   });
-  return data;
+  return normalizePaginatedResponse(data);
 }
 
 export async function createStudent(payload: StudentPayload) {
