@@ -1,5 +1,6 @@
 import api from '@/app/services/api';
 import type { ApiUser, ApiView, Role, View } from '@/app/types';
+import { isAxiosError } from 'axios';
 import { normalizeRole } from '@/app/utils/roles';
 import { normalizeViewCode } from '@/app/utils/views';
 
@@ -231,8 +232,18 @@ export const authLogout = async () => {
   }
 };
 
-export const fetchCurrentUser = async (): Promise<ApiUser> => {
-  const { data } = await api.get<unknown>('/auth/me');
+export const fetchCurrentUser = async (): Promise<ApiUser | null> => {
+  let data: unknown;
+
+  try {
+    ({ data } = await api.get<unknown>('/auth/me'));
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.status === 401) {
+      return null;
+    }
+
+    throw error;
+  }
 
   if (!isRecord(data)) {
     throw new Error('Respuesta inesperada al obtener el usuario actual');

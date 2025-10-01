@@ -72,6 +72,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = useCallback(async () => {
     try {
       const current = await fetchCurrentUser();
+      if (!current) {
+        persistUser(null);
+        return null;
+      }
+
       const normalized = normalizeUser(current);
       persistUser(normalized);
       return normalized;
