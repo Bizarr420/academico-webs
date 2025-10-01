@@ -99,17 +99,14 @@ export interface PaginationFilters {
 
 export interface Student {
   id: number;
-  ci: string | null;
-  nombres: string;
-  apellidos: string;
-  curso: string | null;
+  persona_id: number;
+  codigo_est: string;
+  persona?: Person | null;
 }
 
 export interface StudentPayload {
-  ci: string;
-  nombres: string;
-  apellidos: string;
-  curso: string;
+  persona_id: number;
+  codigo_est: string;
 }
 
 export type StudentFilters = PaginationFilters;
@@ -164,27 +161,18 @@ export interface PersonPayload {
 
 export type PersonFilters = PaginationFilters;
 
-export interface TeacherSubject {
-  id: number;
-  nombre: string;
-  curso: string;
-}
-
 export interface Teacher {
   id: number;
-  ci: string | null;
-  nombres: string;
-  apellidos: string;
-  especialidad: string | null;
-  materias?: TeacherSubject[];
+  persona_id: number;
+  titulo: string | null;
+  profesion: string | null;
+  persona?: Person | null;
 }
 
 export interface TeacherPayload {
-  ci: string;
-  nombres: string;
-  apellidos: string;
-  especialidad: string;
-  materia_ids: number[];
+  persona_id: number;
+  titulo?: string | null;
+  profesion?: string | null;
 }
 
 export type TeacherFilters = PaginationFilters;

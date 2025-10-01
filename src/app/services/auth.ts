@@ -1,4 +1,4 @@
-import api from '@/app/services/api';
+import api, { rememberSessionToken, setSessionToken } from '@/app/services/api';
 import type { ApiUser, ApiView, Role, View } from '@/app/types';
 import { isAxiosError } from 'axios';
 import { normalizeRole } from '@/app/utils/roles';
@@ -220,10 +220,12 @@ export const authLogin = async (username: string, password: string) => {
   formData.append('username', username);
   formData.append('password', password);
 
-  await api.post('/auth/login', formData, {
+  const response = await api.post('/auth/login', formData, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     withCredentials: true,
   });
+
+  rememberSessionToken(response?.data);
 };
 
 export const authLogout = async () => {
@@ -234,6 +236,8 @@ export const authLogout = async () => {
       console.warn('auth/logout endpoint returned an error', error);
     }
   }
+
+  setSessionToken(null);
 };
 
 export const fetchCurrentUser = async (): Promise<ApiUser | null> => {
@@ -248,6 +252,8 @@ export const fetchCurrentUser = async (): Promise<ApiUser | null> => {
 
     throw error;
   }
+
+  rememberSessionToken(data);
 
   if (!isRecord(data)) {
     throw new Error('Respuesta inesperada al obtener el usuario actual');

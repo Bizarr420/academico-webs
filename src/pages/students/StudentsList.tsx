@@ -69,7 +69,7 @@ export default function StudentsList() {
         </label>
         <input
           id="students-search"
-          placeholder="Buscar por nombre o CI…"
+          placeholder="Buscar por código o persona…"
           className="border rounded px-3 py-2 w-full"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -86,20 +86,29 @@ export default function StudentsList() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b">
-                <th className="py-2">CI</th>
-                <th>Nombre</th>
-                <th>Curso</th>
+                <th className="py-2">Código</th>
+                <th>Persona</th>
+                <th>ID Persona</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {students.map((student) => (
                 <tr key={student.id} className="border-b last:border-0">
-                  <td className="py-2">{student.ci || '-'}</td>
+                  <td className="py-2">{student.codigo_est}</td>
                   <td>
-                    {student.apellidos} {student.nombres}
+                    {(() => {
+                      const persona = student.persona;
+                      if (!persona) {
+                        return 'Sin información';
+                      }
+                      const parts = [persona.apellidos, persona.nombres]
+                        .map((part) => part?.trim?.() ?? '')
+                        .filter((part) => part.length > 0);
+                      return parts.length > 0 ? parts.join(' ') : `Persona ${student.persona_id}`;
+                    })()}
                   </td>
-                  <td>{student.curso || '-'}</td>
+                  <td>{student.persona_id}</td>
                   <td>
                     <div className="flex gap-2">
                       <Link
