@@ -6,8 +6,24 @@ import { z } from 'zod';
 import { isAxiosError } from 'axios';
 
 import { createStudent, getStudent, updateStudent } from '@/app/services/students';
-import { SEX_CODES, SEX_LABELS } from '@/app/types';
-import type { Paginated, PersonPayload, Student, StudentPayload, Sexo } from '@/app/types';
+import {
+  SEX_CODES,
+  SEX_LABELS,
+  STUDENT_SITUATION_LABELS,
+  STUDENT_SITUATIONS,
+  STUDENT_STATUS_LABELS,
+  STUDENT_STATES,
+} from '@/app/types';
+import type {
+  Paginated,
+  PersonPayload,
+  Student,
+  StudentPayload,
+  StudentSituation,
+  StudentStatus,
+  Sexo,
+} from '@/app/types';
+import StudentSummary from '@/pages/students/components/StudentSummary';
 
 type PersonMode = 'existing' | 'new';
 
@@ -27,6 +43,9 @@ type StudentFormState = {
   personMode: PersonMode;
   persona_id: string;
   codigo_est: string;
+  anio_ingreso: string;
+  situacion: '' | StudentSituation;
+  estado: '' | StudentStatus;
   persona: PersonFormState;
 };
 
@@ -35,6 +54,9 @@ type PersonFieldErrors = Partial<Record<keyof PersonFormState, string>>;
 type FieldErrors = {
   persona_id?: string;
   codigo_est?: string;
+  anio_ingreso?: string;
+  situacion?: string;
+  estado?: string;
   persona?: PersonFieldErrors;
 };
 
@@ -96,6 +118,9 @@ const createInitialFormState = (): StudentFormState => ({
   personMode: 'existing',
   persona_id: '',
   codigo_est: '',
+  anio_ingreso: String(new Date().getFullYear()),
+  situacion: '',
+  estado: '',
   persona: createEmptyPerson(),
 });
 
@@ -185,6 +210,11 @@ export default function StudentForm() {
         personMode: 'existing',
         persona_id: String(studentQuery.data.persona_id ?? ''),
         codigo_est: studentQuery.data.codigo_est ?? '',
+        anio_ingreso: studentQuery.data.anio_ingreso
+          ? String(studentQuery.data.anio_ingreso)
+          : '',
+        situacion: studentQuery.data.situacion ?? '',
+        estado: studentQuery.data.estado ?? '',
         persona: {
           nombres: persona?.nombres ?? '',
           apellidos: persona?.apellidos ?? '',
@@ -263,6 +293,17 @@ export default function StudentForm() {
     },
   });
 
+  const clearTopLevelError = (field: Exclude<keyof FieldErrors, 'persona'>) => {
+    setFieldErrors((previous) => {
+      if (!previous[field]) {
+        return previous;
+      }
+      const next = { ...previous };
+      delete next[field];
+      return next;
+    });
+  };
+
   const clearPersonaError = (field: keyof PersonFormState) => {
     setFieldErrors((previous) => {
       if (!previous.persona || !previous.persona[field]) {
@@ -285,6 +326,9 @@ export default function StudentForm() {
     setSubmitError('');
 
     const trimmedCodigo = form.codigo_est.trim();
+    const trimmedAnioIngreso = form.anio_ingreso.trim();
+    const selectedSituacion = form.situacion;
+    const selectedEstado = form.estado;
     const personaInput = {
       nombres: form.persona.nombres.trim(),
       apellidos: form.persona.apellidos.trim(),
@@ -307,13 +351,29 @@ export default function StudentForm() {
         : {
             personMode: 'new' as const,
             codigo_est: trimmedCodigo,
-            persona: personaInput,
-          };
+          persona: personaInput,
+        };
 
     const result = studentSchema.safeParse(payloadInput);
 
+    const optionalFieldErrors: FieldErrors = {};
+
+    if (trimmedAnioIngreso) {
+      if (!/^[0-9]{4}$/u.test(trimmedAnioIngreso)) {
+        optionalFieldErrors.anio_ingreso = 'Ingresa un año válido (YYYY).';
+      }
+    }
+
+    if (selectedSituacion && !STUDENT_SITUATIONS.includes(selectedSituacion)) {
+      optionalFieldErrors.situacion = 'Selecciona una situación válida.';
+    }
+
+    if (selectedEstado && !STUDENT_STATES.includes(selectedEstado)) {
+      optionalFieldErrors.estado = 'Selecciona un estado válido.';
+    }
+
     if (!result.success) {
-      const newErrors: FieldErrors = {};
+      const newErrors: FieldErrors = { ...optionalFieldErrors };
       for (const issue of result.error.issues) {
         const [first, second] = issue.path;
         if (first === 'persona' && typeof second === 'string') {
@@ -330,6 +390,11 @@ export default function StudentForm() {
         }
       }
       setFieldErrors(newErrors);
+      return;
+    }
+
+    if (Object.keys(optionalFieldErrors).length > 0) {
+      setFieldErrors(optionalFieldErrors);
       return;
     }
 
@@ -371,21 +436,52 @@ export default function StudentForm() {
       };
     }
 
+    if (trimmedAnioIngreso) {
+      payload.anio_ingreso = Number(trimmedAnioIngreso);
+    }
+
+    if (selectedSituacion) {
+      payload.situacion = selectedSituacion;
+    }
+
+    if (selectedEstado) {
+      payload.estado = selectedEstado;
+    }
+
     setFieldErrors({});
     mutation.mutate(payload);
   };
 
-  const updateTopLevelField = (field: 'persona_id' | 'codigo_est') => (value: string) => {
+  const updateTopLevelField = (field: 'persona_id' | 'codigo_est' | 'anio_ingreso') => (value: string) => {
     setSubmitError('');
-    setFieldErrors((previous) => {
-      if (!previous[field]) {
-        return previous;
-      }
-      const next = { ...previous };
-      delete next[field];
-      return next;
-    });
+    clearTopLevelError(field);
     setForm((previous) => ({ ...previous, [field]: value }));
+  };
+
+  const updateSelectField = (field: 'situacion' | 'estado') => (value: string) => {
+    setSubmitError('');
+    clearTopLevelError(field);
+
+    if (field === 'situacion') {
+      const normalizedValue: StudentFormState['situacion'] =
+        value === '' || STUDENT_SITUATIONS.includes(value as StudentSituation)
+          ? (value as StudentFormState['situacion'])
+          : '';
+      setForm((previous) => ({
+        ...previous,
+        situacion: normalizedValue,
+      }));
+      return;
+    }
+
+    const normalizedEstado: StudentFormState['estado'] =
+      value === '' || STUDENT_STATES.includes(value as StudentStatus)
+        ? (value as StudentFormState['estado'])
+        : '';
+    setForm((previous) => ({
+      ...previous,
+      estado: normalizedEstado,
+    }));
   };
 
   const updatePersonaField = (field: keyof PersonFormState) => (value: string) => {
@@ -445,6 +541,11 @@ export default function StudentForm() {
   return (
     <div className="bg-white rounded-2xl shadow p-4 max-w-3xl">
       <h1 className="text-lg font-semibold mb-4">{title}</h1>
+      {isEditing && studentQuery.data && (
+        <div className="mb-4">
+          <StudentSummary student={studentQuery.data} />
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <span className="block text-sm font-medium text-gray-600">Persona asociada</span>
@@ -635,18 +736,77 @@ export default function StudentForm() {
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-600" htmlFor="student-codigo">
-            Código de estudiante
-          </label>
-          <input
-            id="student-codigo"
-            className="w-full border rounded px-3 py-2"
-            value={form.codigo_est}
-            onChange={(event) => updateTopLevelField('codigo_est')(event.target.value)}
-            maxLength={50}
-          />
-          {fieldErrors.codigo_est && <p className="text-sm text-red-600 mt-1">{fieldErrors.codigo_est}</p>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-600" htmlFor="student-codigo">
+              Código de estudiante
+            </label>
+            <input
+              id="student-codigo"
+              className="w-full border rounded px-3 py-2"
+              value={form.codigo_est}
+              onChange={(event) => updateTopLevelField('codigo_est')(event.target.value)}
+              maxLength={50}
+            />
+            {fieldErrors.codigo_est && <p className="text-sm text-red-600 mt-1">{fieldErrors.codigo_est}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600" htmlFor="student-anio-ingreso">
+              Año de ingreso
+            </label>
+            <input
+              id="student-anio-ingreso"
+              className="w-full border rounded px-3 py-2"
+              value={form.anio_ingreso}
+              onChange={(event) => updateTopLevelField('anio_ingreso')(event.target.value)}
+              placeholder="YYYY"
+              inputMode="numeric"
+            />
+            {fieldErrors.anio_ingreso && (
+              <p className="text-sm text-red-600 mt-1">{fieldErrors.anio_ingreso}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-600" htmlFor="student-situacion">
+              Situación académica
+            </label>
+            <select
+              id="student-situacion"
+              className="w-full border rounded px-3 py-2"
+              value={form.situacion}
+              onChange={(event) => updateSelectField('situacion')(event.target.value)}
+            >
+              <option value="">Por defecto (API)</option>
+              {STUDENT_SITUATIONS.map((option) => (
+                <option key={option} value={option}>
+                  {STUDENT_SITUATION_LABELS[option]}
+                </option>
+              ))}
+            </select>
+            {fieldErrors.situacion && <p className="text-sm text-red-600 mt-1">{fieldErrors.situacion}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600" htmlFor="student-estado">
+              Estado académico
+            </label>
+            <select
+              id="student-estado"
+              className="w-full border rounded px-3 py-2"
+              value={form.estado}
+              onChange={(event) => updateSelectField('estado')(event.target.value)}
+            >
+              <option value="">Por defecto (API)</option>
+              {STUDENT_STATES.map((option) => (
+                <option key={option} value={option}>
+              {STUDENT_STATUS_LABELS[option]}
+                </option>
+              ))}
+            </select>
+            {fieldErrors.estado && <p className="text-sm text-red-600 mt-1">{fieldErrors.estado}</p>}
+          </div>
         </div>
 
         {submitError && <p className="text-red-600 text-sm">{submitError}</p>}

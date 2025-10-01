@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 
 import { deleteStudent, getStudents, STUDENTS_PAGE_SIZE } from '@/app/services/students';
 import type { Student } from '@/app/types';
+import StudentSummary from '@/pages/students/components/StudentSummary';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -83,54 +84,29 @@ export default function StudentsList() {
 
       {students.length > 0 && (
         <>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b">
-                <th className="py-2">Código</th>
-                <th>Persona</th>
-                <th>ID Persona</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((student) => (
-                <tr key={student.id} className="border-b last:border-0">
-                  <td className="py-2">{student.codigo_est}</td>
-                  <td>
-                    {(() => {
-                      const persona = student.persona;
-                      if (!persona) {
-                        return 'Sin información';
-                      }
-                      const parts = [persona.apellidos, persona.nombres]
-                        .map((part) => part?.trim?.() ?? '')
-                        .filter((part) => part.length > 0);
-                      return parts.length > 0 ? parts.join(' ') : `Persona ${student.persona_id}`;
-                    })()}
-                  </td>
-                  <td>{student.persona_id}</td>
-                  <td>
-                    <div className="flex gap-2">
-                      <Link
-                        to={`/estudiantes/${student.id}/editar`}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        Editar
-                      </Link>
-                      <button
-                        type="button"
-                        className="text-sm text-red-600 hover:underline"
-                        onClick={() => handleDelete(student.id)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="space-y-4">
+            {students.map((student) => (
+              <div key={student.id} className="space-y-3">
+                <StudentSummary student={student} />
+                <div className="flex items-center justify-end gap-2">
+                  <Link
+                    to={`/estudiantes/${student.id}/editar`}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    Editar
+                  </Link>
+                  <button
+                    type="button"
+                    className="text-sm text-red-600 hover:underline"
+                    onClick={() => handleDelete(student.id)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
 
           {deleteMutation.isError && (
             <p className="text-sm text-red-600 mt-2">No se pudo eliminar el estudiante.</p>
