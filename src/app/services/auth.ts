@@ -1,5 +1,6 @@
 import api from '@/app/services/api';
-import type { ApiUser, ApiView, View } from '@/app/types';
+import type { ApiUser, ApiView, Role, View } from '@/app/types';
+import { normalizeRole } from '@/app/utils/roles';
 import { normalizeViewCode } from '@/app/utils/views';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -106,21 +107,41 @@ const coerceViews = (value: unknown): (ApiView | View)[] => {
     if (Array.isArray(value.data)) {
       return coerceViews(value.data);
     }
+
     return dedupeViews(
-      Object.values(value).flatMap((item, index) =>
-        Array.isArray(item)
-          ? coerceViews(item)
-          : typeof item === 'string' || typeof item === 'number'
-            ? [
-                {
-                  id: index + 1,
-                  nombre: normalizeViewCode(String(item)),
-                  codigo: normalizeViewCode(String(item)),
-                  descripcion: null,
-                },
-              ]
-            : [],
-      ),
+      Object.entries(value).flatMap(([key, item], index) => {
+        const lowerKey = key.toLowerCase();
+
+        if (lowerKey.includes('role') && !lowerKey.includes('permission') && !lowerKey.includes('vista')) {
+          return [];
+        }
+
+        if (Array.isArray(item)) {
+          return coerceViews(item);
+        }
+
+        if (isRecord(item) && (lowerKey.includes('permission') || lowerKey.includes('vista'))) {
+          return coerceViews(item);
+        }
+
+        if (typeof item === 'string' || typeof item === 'number') {
+          const code = normalizeViewCode(String(item));
+          if (!code) {
+            return [];
+          }
+
+          return [
+            {
+              id: index + 1,
+              nombre: code,
+              codigo: code,
+              descripcion: null,
+            },
+          ];
+        }
+
+        return [];
+      }),
     );
   }
 
@@ -136,6 +157,47 @@ const collectViews = (sources: unknown[]): (ApiView | View)[] => {
     }
   });
   return dedupeViews(aggregated);
+};
+
+const ROLE_KEY_PATTERN = /(role|rol)/u;
+
+const collectRoles = (sources: unknown[]): Role[] => {
+  const roles = new Set<Role>();
+
+  const visit = (value: unknown) => {
+    if (!value) {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      const normalized = normalizeRole(String(value));
+      if (normalized) {
+        roles.add(normalized);
+      }
+      return;
+    }
+
+    if (isRecord(value)) {
+      Object.entries(value).forEach(([key, item]) => {
+        if (!item) {
+          return;
+        }
+
+        if (ROLE_KEY_PATTERN.test(key.toLowerCase())) {
+          visit(item);
+        }
+      });
+    }
+  };
+
+  sources.forEach(visit);
+
+  return Array.from(roles);
 };
 
 const fetchPermissionsFallback = async (): Promise<(ApiView | View)[]> => {
@@ -163,7 +225,7 @@ export const authLogout = async () => {
   try {
     await api.post('/auth/logout');
   } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
+    if (import.meta.env.MODE !== 'production') {
       console.warn('auth/logout endpoint returned an error', error);
     }
   }
@@ -177,26 +239,50 @@ export const fetchCurrentUser = async (): Promise<ApiUser> => {
   }
 
   const candidateUser = isRecord(data.user) ? data.user : data;
-  const user = isRecord(candidateUser) ? (candidateUser as ApiUser) : null;
+  const user = isRecord(candidateUser) ? (candidateUser as unknown as ApiUser) : null;
 
   if (!user) {
     throw new Error('No se pudo determinar el usuario autenticado');
   }
 
+  const roles = collectRoles([
+    data.roles,
+    data.role,
+    data.role_context,
+    isRecord(data.user) ? data.user.role : undefined,
+    isRecord(data.user) ? data.user.roles : undefined,
+    isRecord(data.user) ? data.user.role_context : undefined,
+    isRecord(data.user) && isRecord(data.user.context) ? data.user.context : undefined,
+    user.role,
+    // Some backends embed the current role context in nested objects
+    isRecord(data.context) ? data.context.role : undefined,
+    isRecord(data.context) ? data.context.roles : undefined,
+  ]);
+
   const views = collectViews([
     data.vistas,
     data.permissions,
     data.permisos,
+    data.permissions_cache,
+    data.permission_cache,
+    data.role_context,
     isRecord(data.user) ? data.user.vistas : undefined,
     isRecord(data.user) ? data.user.permissions : undefined,
     isRecord(data.user) ? data.user.permisos : undefined,
+    isRecord(data.user) ? data.user.permissions_cache : undefined,
+    isRecord(data.user) ? data.user.permission_cache : undefined,
+    isRecord(data.user) ? data.user.role_context : undefined,
     user.vistas,
   ]);
 
   const vistas = views.length > 0 ? views : await fetchPermissionsFallback();
 
+  const primaryRole = roles[0] ?? normalizeRole(user.role);
+
   return {
     ...user,
+    role: primaryRole ?? null,
+    roles,
     vistas,
   };
 };

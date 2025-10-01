@@ -3,6 +3,7 @@ import type {
   ApiManagedUser,
   ManagedUser,
   Paginated,
+  Role,
   UserFilters,
   UserPayload,
 } from '@/app/types';
@@ -12,10 +13,37 @@ export const USERS_PAGE_SIZE = 10;
 
 const USERS_ENDPOINT = '/usuarios';
 
-const mapUser = (user: ApiManagedUser): ManagedUser => ({
-  ...user,
-  role: normalizeRole(user.role),
-});
+const normalizeUserRoles = (
+  roles: (Role | string | null | undefined)[] | null | undefined,
+  fallback: Role | string | null | undefined,
+): Role[] => {
+  const normalized = new Set<Role>();
+
+  if (Array.isArray(roles)) {
+    roles.forEach((role) => {
+      const normalizedRole = normalizeRole(role ?? undefined);
+      if (normalizedRole) {
+        normalized.add(normalizedRole);
+      }
+    });
+  }
+
+  const normalizedFallback = normalizeRole(fallback ?? undefined);
+  if (normalizedFallback) {
+    normalized.add(normalizedFallback);
+  }
+
+  return Array.from(normalized);
+};
+
+const mapUser = (user: ApiManagedUser): ManagedUser => {
+  const normalizedRoles = normalizeUserRoles(user.roles ?? null, user.role);
+  return {
+    ...user,
+    role: normalizedRoles[0] ?? normalizeRole(user.role),
+    roles: normalizedRoles,
+  };
+};
 
 export async function getUsers(filters: UserFilters) {
   const { page, search, page_size = USERS_PAGE_SIZE, role } = filters;
