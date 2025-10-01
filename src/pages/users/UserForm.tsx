@@ -140,16 +140,6 @@ export default function UserForm() {
     setForm((previous) => ({ ...previous, [field]: value }));
   };
 
-  if (isEditing && userQuery.isLoading) {
-    return <p>Cargando usuario…</p>;
-  }
-
-  if (isEditing && userQuery.isError) {
-    return <p className="text-red-600">No se pudo cargar la información del usuario.</p>;
-  }
-
-  const title = isEditing ? 'Editar usuario' : 'Nuevo usuario';
-
   const peopleOptions = useMemo<Person[]>(() => {
     if (!peopleQuery.data) {
       return [];
@@ -166,6 +156,16 @@ export default function UserForm() {
       return 0;
     });
   }, [peopleQuery.data]);
+
+  if (isEditing && userQuery.isLoading) {
+    return <p>Cargando usuario…</p>;
+  }
+
+  if (isEditing && userQuery.isError) {
+    return <p className="text-red-600">No se pudo cargar la información del usuario.</p>;
+  }
+
+  const title = isEditing ? 'Editar usuario' : 'Nuevo usuario';
 
   return (
     <div className="bg-white rounded-2xl shadow p-4 max-w-2xl">
