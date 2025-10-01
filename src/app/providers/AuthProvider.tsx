@@ -59,6 +59,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const hasInitializedRef = useRef(false);
+  const fallbackTimeoutIdRef = useRef<number | null>(null);
   const navigate = useNavigate();
 
   const persistUser = useCallback((value: User | null) => {
@@ -95,6 +96,24 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
     hasInitializedRef.current = true;
 
+    const clearFallbackTimeout = () => {
+      if (fallbackTimeoutIdRef.current !== null) {
+        window.clearTimeout(fallbackTimeoutIdRef.current);
+        fallbackTimeoutIdRef.current = null;
+      }
+    };
+
+    let active = true;
+
+    const startFallbackTimeout = () => {
+      clearFallbackTimeout();
+      fallbackTimeoutIdRef.current = window.setTimeout(() => {
+        if (active) {
+          setIsLoading(false);
+        }
+      }, 6000);
+    };
+
     const saved = localStorage.getItem('user');
     if (saved) {
       try {
@@ -107,12 +126,13 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       }
     }
 
-    let active = true;
+    startFallbackTimeout();
     const initialize = async () => {
       try {
         await refreshUser();
       } finally {
         if (active) {
+          clearFallbackTimeout();
           setIsLoading(false);
         }
       }
@@ -121,12 +141,15 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     initialize().catch((error) => {
       console.error('Failed to initialize authentication', error);
       if (active) {
+        clearFallbackTimeout();
         setIsLoading(false);
       }
     });
 
     return () => {
       active = false;
+      clearFallbackTimeout();
+      hasInitializedRef.current = false;
     };
   }, [persistUser, refreshUser]);
 
