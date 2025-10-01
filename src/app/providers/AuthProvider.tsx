@@ -2,31 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import api from '@/app/services/api';
-import type { ApiUser, ApiView, AuthResponse, User, View, ViewCode } from '@/app/types';
+import { authLogin, authLogout, fetchCurrentUser } from '@/app/services/auth';
+import type { ApiUser, ApiView, User, View, ViewCode } from '@/app/types';
 import { normalizeRole } from '@/app/utils/roles';
+import { normalizeViews } from '@/app/utils/views';
 
 import { AuthContext } from './AuthContext';
 
 type AuthProviderProps = {
   children: ReactNode;
-};
-
-const normalizeViewCode = (code: ApiView['codigo'] | View['codigo'] | string) => {
-  return `${code}`.trim().toUpperCase();
-};
-
-const normalizeViews = (views?: (ApiView | View)[] | null): View[] => {
-  if (!Array.isArray(views)) {
-    return [];
-  }
-
-  return views.map((view) => ({
-    id: view.id,
-    nombre: view.nombre,
-    codigo: normalizeViewCode(view.codigo),
-    descripcion: view.descripcion ?? null,
-  }));
 };
 
 const normalizeUser = (user: ApiUser | User): User => {
@@ -55,7 +39,30 @@ const normalizeUser = (user: ApiUser | User): User => {
 
 export default function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+
+  const persistUser = useCallback((value: User | null) => {
+    setUser(value);
+    if (value) {
+      localStorage.setItem('user', JSON.stringify(value));
+    } else {
+      localStorage.removeItem('user');
+    }
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const current = await fetchCurrentUser();
+      const normalized = normalizeUser(current);
+      persistUser(normalized);
+      return normalized;
+    } catch (error) {
+      console.error('Failed to refresh authenticated user', error);
+      persistUser(null);
+      return null;
+    }
+  }, [persistUser]);
 
   useEffect(() => {
     const saved = localStorage.getItem('user');
@@ -63,39 +70,65 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       try {
         const parsed = JSON.parse(saved) as ApiUser | User;
         const normalizedUser = normalizeUser(parsed);
-        setUser(normalizedUser);
-        localStorage.setItem('user', JSON.stringify(normalizedUser));
+        persistUser(normalizedUser);
       } catch (error) {
         console.error('Failed to parse saved user from storage', error);
         localStorage.removeItem('user');
       }
     }
-  }, []);
 
-  const login = useCallback(async (username: string, password: string) => {
-    const formData = new URLSearchParams();
-    formData.append('username', username);
-    formData.append('password', password);
+    let active = true;
+    const initialize = async () => {
+      try {
+        await refreshUser();
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
 
-    const { data } = await api.post<AuthResponse>(
-      '/auth/login',
-      formData,
-      {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      },
-    );
-    const normalizedUser = normalizeUser(data.user);
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('user', JSON.stringify(normalizedUser));
-    setUser(normalizedUser);
-  }, []);
+    initialize().catch((error) => {
+      console.error('Failed to initialize authentication', error);
+      if (active) {
+        setIsLoading(false);
+      }
+    });
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    setUser(null);
-    navigate('/login', { replace: true });
-  }, [navigate]);
+    return () => {
+      active = false;
+    };
+  }, [persistUser, refreshUser]);
+
+  const login = useCallback(
+    async (username: string, password: string) => {
+      setIsLoading(true);
+      try {
+        await authLogin(username, password);
+        const refreshed = await refreshUser();
+        if (!refreshed) {
+          throw new Error('No se pudo obtener el usuario autenticado.');
+        }
+      } catch (error) {
+        persistUser(null);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [persistUser, refreshUser],
+  );
+
+  const logout = useCallback(async () => {
+    try {
+      await authLogout();
+    } catch (error) {
+      console.warn('Failed to notify backend about logout', error);
+    } finally {
+      persistUser(null);
+      navigate('/login', { replace: true });
+    }
+  }, [navigate, persistUser]);
 
   const views = useMemo<ViewCode[]>(() => {
     if (!user) {
@@ -118,8 +151,10 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       hasView,
       login,
       logout,
+      refreshUser,
+      isLoading,
     }),
-    [hasView, login, logout, user, views],
+    [hasView, isLoading, login, logout, refreshUser, user, views],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

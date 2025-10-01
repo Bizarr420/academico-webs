@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { useAuth } from '@/app/hooks/useAuth';
 import { resolveRoleLabel } from '@/app/utils/roles';
@@ -18,7 +18,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
     const name = typeof user.name === 'string' && user.name.trim() ? user.name.trim() : null;
     const username = typeof user.username === 'string' && user.username.trim() ? user.username.trim() : null;
     const displayNameValue = name ?? username ?? 'Usuario';
-    const roleLabelValue =
+    const resolvedRoleLabel =
       resolveRoleLabel(user.role) ||
       (typeof user.role === 'string' && user.role.trim()
         ? 'Sin rol'
@@ -26,8 +26,16 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           ? 'Sin rol'
           : '');
 
+    const roleLabelValue = resolvedRoleLabel ? resolvedRoleLabel.toUpperCase() : '';
+
     return { displayName: displayNameValue, roleLabel: roleLabelValue };
   }, [user]);
+
+  const handleLogout = useCallback(() => {
+    void Promise.resolve(logout()).catch((error) => {
+      console.error('Error al cerrar sesión', error);
+    });
+  }, [logout]);
 
   return (
     <header className="h-14 border-b bg-white px-4 flex items-center justify-between sticky top-0 z-30">
@@ -55,13 +63,17 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
       </div>
       <div className="flex items-center gap-3">
         {user && (
-          <span className="text-xs sm:text-sm text-gray-600">
-            {displayName}
-            {roleLabel ? ` • ${roleLabel}` : ''}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs sm:text-sm font-medium text-gray-700">{displayName}</span>
+            {roleLabel && (
+              <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                {roleLabel}
+              </span>
+            )}
+          </div>
         )}
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="text-sm px-3 py-1 rounded bg-gray-900 text-white hover:bg-gray-800 transition-colors"
         >
           Salir

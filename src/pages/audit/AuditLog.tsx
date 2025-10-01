@@ -83,7 +83,7 @@ export default function AuditLog() {
                 const formattedDate = (() => {
                   try {
                     return dateTimeFormatter.format(new Date(entry.timestamp));
-                  } catch (error) {
+                  } catch {
                     return entry.timestamp;
                   }
                 })();
