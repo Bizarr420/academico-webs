@@ -1,4 +1,5 @@
 import api, { withTrailingSlash } from '@/app/services/api';
+import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type {
   ApiPerson,
   Paginated,
@@ -44,24 +45,6 @@ const mapPayloadToApi = (payload: PersonPayload) => {
   ) as Record<string, unknown>;
 };
 
-const normalizePaginatedItems = <T>(data: PaginatedResponse<T>): Paginated<T> => {
-  if (Array.isArray(data)) {
-    return {
-      items: data,
-      total: data.length,
-      page: 1,
-      page_size: data.length,
-    };
-  }
-
-  const items = Array.isArray(data.items) ? data.items : [];
-
-  return {
-    ...data,
-    items,
-  };
-};
-
 export async function getPeople(filters: PersonFilters): Promise<Paginated<Person>> {
   const { page, search, page_size = PEOPLE_PAGE_SIZE } = filters;
   const params: Record<string, unknown> = {
@@ -76,7 +59,7 @@ export async function getPeople(filters: PersonFilters): Promise<Paginated<Perso
   const { data } = await api.get<PaginatedResponse<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), {
     params,
   });
-  const normalized = normalizePaginatedItems(data);
+  const normalized = normalizePaginatedResponse(data);
   return {
     items: normalized.items.map(mapPerson),
     total: normalized.total,
@@ -113,6 +96,6 @@ export async function getAllPeople() {
       page_size: 1000,
     },
   });
-  const normalized = normalizePaginatedItems(data);
+  const normalized = normalizePaginatedResponse(data);
   return normalized.items.map(mapPerson);
 }

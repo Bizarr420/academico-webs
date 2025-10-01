@@ -1,11 +1,12 @@
 import api, { withTrailingSlash } from '@/app/services/api';
-import type { Paginated, Teacher, TeacherFilters, TeacherPayload } from '@/app/types';
+import { normalizePaginatedResponse } from '@/app/services/pagination';
+import type { Paginated, PaginatedResponse, Teacher, TeacherFilters, TeacherPayload } from '@/app/types';
 
 export const TEACHERS_PAGE_SIZE = 10;
 
 const TEACHERS_ENDPOINT = '/docentes';
 
-export async function getTeachers(filters: TeacherFilters) {
+export async function getTeachers(filters: TeacherFilters): Promise<Paginated<Teacher>> {
   const { page, search, page_size = TEACHERS_PAGE_SIZE } = filters;
   const params: Record<string, unknown> = {
     page,
@@ -16,10 +17,10 @@ export async function getTeachers(filters: TeacherFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<Teacher>>(withTrailingSlash(TEACHERS_ENDPOINT), {
+  const { data } = await api.get<PaginatedResponse<Teacher>>(withTrailingSlash(TEACHERS_ENDPOINT), {
     params,
   });
-  return data;
+  return normalizePaginatedResponse(data);
 }
 
 export async function createTeacher(payload: TeacherPayload) {

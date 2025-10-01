@@ -1,9 +1,11 @@
 import api, { withTrailingSlash } from '@/app/services/api';
+import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type {
   ApiAuditLogEntry,
   AuditLogEntry,
   AuditLogFilters,
   Paginated,
+  PaginatedResponse,
 } from '@/app/types';
 
 export const AUDIT_LOG_PAGE_SIZE = 10;
@@ -20,7 +22,7 @@ const mapAuditEntry = (entry: ApiAuditLogEntry): AuditLogEntry => ({
   ip: entry.ip ?? null,
 });
 
-export async function getAuditLog(filters: AuditLogFilters) {
+export async function getAuditLog(filters: AuditLogFilters): Promise<Paginated<AuditLogEntry>> {
   const { page, search, page_size = AUDIT_LOG_PAGE_SIZE } = filters;
   const params: Record<string, unknown> = {
     page,
@@ -31,12 +33,14 @@ export async function getAuditLog(filters: AuditLogFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<ApiAuditLogEntry>>(withTrailingSlash(AUDIT_LOG_ENDPOINT), {
+  const { data } = await api.get<PaginatedResponse<ApiAuditLogEntry>>(withTrailingSlash(AUDIT_LOG_ENDPOINT), {
     params,
   });
 
+  const normalized = normalizePaginatedResponse(data);
+
   return {
-    ...data,
-    items: data.items.map(mapAuditEntry),
+    ...normalized,
+    items: normalized.items.map(mapAuditEntry),
   };
 }

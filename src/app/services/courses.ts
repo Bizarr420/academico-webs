@@ -1,11 +1,12 @@
 import api, { withTrailingSlash } from '@/app/services/api';
-import type { Course, CourseFilters, CoursePayload, Paginated } from '@/app/types';
+import { normalizePaginatedResponse } from '@/app/services/pagination';
+import type { Course, CourseFilters, CoursePayload, Paginated, PaginatedResponse } from '@/app/types';
 
 export const COURSES_PAGE_SIZE = 10;
 
 const COURSES_ENDPOINT = '/cursos';
 
-export async function getCourses(filters: CourseFilters) {
+export async function getCourses(filters: CourseFilters): Promise<Paginated<Course>> {
   const { page, search, page_size = COURSES_PAGE_SIZE } = filters;
   const params: Record<string, unknown> = {
     page,
@@ -16,10 +17,10 @@ export async function getCourses(filters: CourseFilters) {
     params.search = search.trim();
   }
 
-  const { data } = await api.get<Paginated<Course>>(withTrailingSlash(COURSES_ENDPOINT), {
+  const { data } = await api.get<PaginatedResponse<Course>>(withTrailingSlash(COURSES_ENDPOINT), {
     params,
   });
-  return data;
+  return normalizePaginatedResponse(data);
 }
 
 export async function getCourse(id: number) {
@@ -41,12 +42,12 @@ export async function deleteCourse(id: number) {
   await api.delete(`${COURSES_ENDPOINT}/${id}`);
 }
 
-export async function getAllCourses() {
-  const { data } = await api.get<Paginated<Course>>(withTrailingSlash(COURSES_ENDPOINT), {
+export async function getAllCourses(): Promise<Course[]> {
+  const { data } = await api.get<PaginatedResponse<Course>>(withTrailingSlash(COURSES_ENDPOINT), {
     params: {
       page: 1,
       page_size: 1000,
     },
   });
-  return data.items;
+  return normalizePaginatedResponse(data).items;
 }
