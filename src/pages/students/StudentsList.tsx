@@ -29,6 +29,7 @@ export default function StudentsList() {
       getStudents({
         page,
         search: debouncedSearch || undefined,
+        codigo_rude: debouncedSearch || undefined,
         page_size: STUDENTS_PAGE_SIZE,
       }),
     placeholderData: (previousData) => previousData,
@@ -70,7 +71,7 @@ export default function StudentsList() {
         </label>
         <input
           id="students-search"
-          placeholder="Buscar por código o persona…"
+          placeholder="Buscar por código RUDE o persona…"
           className="border rounded px-3 py-2 w-full"
           value={search}
           onChange={(event) => setSearch(event.target.value)}

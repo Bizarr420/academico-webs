@@ -7,13 +7,15 @@ export const STUDENTS_PAGE_SIZE = 10;
 const STUDENTS_ENDPOINT = '/estudiantes';
 
 export async function getStudents(filters: StudentFilters): Promise<Paginated<Student>> {
-  const { page, search, page_size = STUDENTS_PAGE_SIZE } = filters;
+  const { page, search, codigo_rude, page_size = STUDENTS_PAGE_SIZE } = filters;
   const params: Record<string, unknown> = {
     page,
     page_size,
   };
 
-  if (typeof search === 'string' && search.trim().length > 0) {
+  if (typeof codigo_rude === 'string' && codigo_rude.trim().length > 0) {
+    params.codigo_rude = codigo_rude.trim();
+  } else if (typeof search === 'string' && search.trim().length > 0) {
     params.search = search.trim();
   }
 
