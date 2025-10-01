@@ -6,7 +6,8 @@ import { z } from 'zod';
 import { isAxiosError } from 'axios';
 
 import { createTeacher, getTeacher, updateTeacher } from '@/app/services/teachers';
-import type { Paginated, Teacher, TeacherPayload } from '@/app/types';
+import { SEX_CODES, SEX_LABELS } from '@/app/types';
+import type { Paginated, PersonPayload, Sexo, Teacher, TeacherPayload } from '@/app/types';
 
 const textFieldSchema = z
   .string()
@@ -14,28 +15,94 @@ const textFieldSchema = z
   .max(120, 'Máximo 120 caracteres')
   .optional();
 
-const teacherSchema = z.object({
-  persona_id: z.coerce
-    .number({ invalid_type_error: 'Ingresa un ID de persona válido.' })
-    .int('El ID de la persona debe ser un número entero.')
-    .positive('El ID de la persona debe ser mayor a 0.'),
-  titulo: textFieldSchema,
-  profesion: textFieldSchema,
-});
+type PersonMode = 'existing' | 'new';
+
+type PersonFormState = {
+  nombres: string;
+  apellidos: string;
+  sexo: '' | Sexo;
+  fecha_nacimiento: string;
+  celular: string;
+  direccion: string;
+  ci_numero: string;
+  ci_complemento: string;
+  ci_expedicion: string;
+};
 
 type TeacherFormState = {
+  personMode: PersonMode;
   persona_id: string;
   titulo: string;
   profesion: string;
+  persona: PersonFormState;
 };
 
-type FieldErrors = Partial<Record<keyof TeacherFormState, string>>;
+type PersonFieldErrors = Partial<Record<keyof PersonFormState, string>>;
 
-const initialValues: TeacherFormState = {
+type FieldErrors = {
+  persona_id?: string;
+  titulo?: string;
+  profesion?: string;
+  persona?: PersonFieldErrors;
+};
+
+const personSchema = z.object({
+  nombres: z.string().min(1, 'Ingresa los nombres').max(120, 'Máximo 120 caracteres'),
+  apellidos: z.string().min(1, 'Ingresa los apellidos').max(120, 'Máximo 120 caracteres'),
+  sexo: z.enum(SEX_CODES, { message: 'Selecciona un sexo válido' }),
+  fecha_nacimiento: z
+    .string()
+    .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/u, 'Ingresa una fecha válida (YYYY-MM-DD)'),
+  celular: z
+    .string()
+    .min(1, 'Ingresa el celular')
+    .max(20, 'Máximo 20 caracteres'),
+  direccion: z.string().max(255, 'Máximo 255 caracteres').optional(),
+  ci_numero: z.string().max(20, 'Máximo 20 caracteres').optional(),
+  ci_complemento: z.string().max(5, 'Máximo 5 caracteres').optional(),
+  ci_expedicion: z.string().max(5, 'Máximo 5 caracteres').optional(),
+});
+
+const teacherSchema = z.discriminatedUnion('personMode', [
+  z.object({
+    personMode: z.literal('existing'),
+    persona_id: z.coerce
+      .number()
+      .refine((value) => Number.isFinite(value), {
+        message: 'Ingresa un ID de persona válido.',
+      })
+      .int('El ID de la persona debe ser un número entero.')
+      .positive('El ID de la persona debe ser mayor a 0.'),
+    titulo: textFieldSchema,
+    profesion: textFieldSchema,
+  }),
+  z.object({
+    personMode: z.literal('new'),
+    persona: personSchema,
+    titulo: textFieldSchema,
+    profesion: textFieldSchema,
+  }),
+]);
+
+const createEmptyPerson = (): PersonFormState => ({
+  nombres: '',
+  apellidos: '',
+  sexo: '',
+  fecha_nacimiento: '',
+  celular: '',
+  direccion: '',
+  ci_numero: '',
+  ci_complemento: '',
+  ci_expedicion: '',
+});
+
+const createInitialFormState = (): TeacherFormState => ({
+  personMode: 'existing',
   persona_id: '',
   titulo: '',
   profesion: '',
-};
+  persona: createEmptyPerson(),
+});
 
 const extractErrorDetail = (value: unknown): string => {
   if (!value) {
@@ -105,7 +172,7 @@ export default function TeacherForm() {
   const queryClient = useQueryClient();
   const { teacherId } = useParams();
   const isEditing = Boolean(teacherId);
-  const [form, setForm] = useState<TeacherFormState>(initialValues);
+  const [form, setForm] = useState<TeacherFormState>(() => createInitialFormState());
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [originalTeacher, setOriginalTeacher] = useState<Teacher | null>(null);
@@ -118,14 +185,31 @@ export default function TeacherForm() {
 
   useEffect(() => {
     if (teacherQuery.data) {
+      const persona = teacherQuery.data.persona;
+      const fechaNacimiento = persona?.fecha_nacimiento ?? '';
       setForm({
+        personMode: 'existing',
         persona_id: String(teacherQuery.data.persona_id ?? ''),
         titulo: teacherQuery.data.titulo ?? '',
         profesion: teacherQuery.data.profesion ?? '',
+        persona: {
+          nombres: persona?.nombres ?? '',
+          apellidos: persona?.apellidos ?? '',
+          sexo: persona?.sexo ?? '',
+          fecha_nacimiento: fechaNacimiento ? fechaNacimiento.slice(0, 10) : '',
+          celular: persona?.celular ?? '',
+          direccion: persona?.direccion ?? '',
+          ci_numero: persona?.ci_numero ?? '',
+          ci_complemento: persona?.ci_complemento ?? '',
+          ci_expedicion: persona?.ci_expedicion ?? '',
+        },
       });
       setOriginalTeacher(teacherQuery.data);
+    } else if (!isEditing) {
+      setForm(createInitialFormState());
+      setOriginalTeacher(null);
     }
-  }, [teacherQuery.data]);
+  }, [isEditing, teacherQuery.data]);
 
   const mutation = useMutation({
     mutationFn: async (payload: TeacherPayload | Partial<TeacherPayload>) =>
@@ -136,6 +220,7 @@ export default function TeacherForm() {
         queryClient.setQueryData(['teacher', teacherId], teacher);
       }
       queryClient.setQueryData(['teacher', String(teacher.id)], teacher);
+      setOriginalTeacher(teacher);
       navigate('/docentes');
     },
     onError: (error: unknown) => {
@@ -143,16 +228,44 @@ export default function TeacherForm() {
         const detail = extractErrorDetail(error.response.data);
         const normalizedDetail = detail.toLowerCase();
 
-        if (error.response.status === 404 && normalizedDetail.includes('persona no encontrada')) {
+        if (error.response.status === 404 && normalizedDetail.includes('persona')) {
           setFieldErrors((previous) => ({ ...previous, persona_id: 'La persona indicada no existe.' }));
           setSubmitError('');
           return;
         }
 
-        if (error.response.status === 400 && normalizedDetail.includes('docente ya existe')) {
-          setFieldErrors((previous) => ({ ...previous, persona_id: 'Ya existe un docente asignado a esta persona.' }));
-          setSubmitError('');
-          return;
+        if (error.response.status === 400) {
+          if (normalizedDetail.includes('docente') && normalizedDetail.includes('registrad')) {
+            setFieldErrors((previous) => ({
+              ...previous,
+              persona_id: 'Ya existe un docente asignado a esta persona.',
+            }));
+            setSubmitError('');
+            return;
+          }
+
+          if (normalizedDetail.includes('persona') && normalizedDetail.includes('registrad')) {
+            if (form.personMode === 'existing') {
+              setFieldErrors((previous) => ({
+                ...previous,
+                persona_id: 'Ya existe un docente asignado a esta persona.',
+              }));
+              setSubmitError('');
+            } else {
+              setSubmitError('La persona ingresada ya está registrada como docente.');
+            }
+            return;
+          }
+
+          if (normalizedDetail.includes('ci ya registrado')) {
+            setSubmitError('El número de CI ingresado ya está registrado.');
+            return;
+          }
+
+          if (detail) {
+            setSubmitError(detail);
+            return;
+          }
         }
 
         setSubmitError(detail || 'No se pudo guardar.');
@@ -163,61 +276,142 @@ export default function TeacherForm() {
     },
   });
 
+  const clearPersonaError = (field: keyof PersonFormState) => {
+    setFieldErrors((previous) => {
+      if (!previous.persona || !previous.persona[field]) {
+        return previous;
+      }
+      const nextPersona = { ...previous.persona };
+      delete nextPersona[field];
+      const next: FieldErrors = { ...previous };
+      if (Object.keys(nextPersona).length > 0) {
+        next.persona = nextPersona;
+      } else {
+        delete next.persona;
+      }
+      return next;
+    });
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError('');
 
-    const result = teacherSchema.safeParse({
-      persona_id: form.persona_id,
-      titulo: form.titulo,
-      profesion: form.profesion,
-    });
+    const personaInput = {
+      nombres: form.persona.nombres.trim(),
+      apellidos: form.persona.apellidos.trim(),
+      sexo: form.persona.sexo,
+      fecha_nacimiento: form.persona.fecha_nacimiento,
+      celular: form.persona.celular.trim(),
+      direccion: form.persona.direccion.trim() || undefined,
+      ci_numero: form.persona.ci_numero.trim() || undefined,
+      ci_complemento: form.persona.ci_complemento.trim() || undefined,
+      ci_expedicion: form.persona.ci_expedicion.trim() || undefined,
+    };
+
+    const payloadInput =
+      form.personMode === 'existing'
+        ? {
+            personMode: 'existing' as const,
+            persona_id: form.persona_id.trim(),
+            titulo: form.titulo,
+            profesion: form.profesion,
+          }
+        : {
+            personMode: 'new' as const,
+            persona: personaInput,
+            titulo: form.titulo,
+            profesion: form.profesion,
+          };
+
+    const result = teacherSchema.safeParse(payloadInput);
 
     if (!result.success) {
       const newErrors: FieldErrors = {};
       for (const issue of result.error.issues) {
-        const field = issue.path[0];
-        if (typeof field === 'string' && !(field in newErrors)) {
-          newErrors[field as keyof TeacherFormState] = issue.message;
+        const [first, second] = issue.path;
+        if (first === 'persona' && typeof second === 'string') {
+          const personaErrors = { ...(newErrors.persona ?? {}) };
+          if (!personaErrors[second as keyof PersonFormState]) {
+            personaErrors[second as keyof PersonFormState] = issue.message;
+          }
+          newErrors.persona = personaErrors;
+          continue;
+        }
+
+        if (typeof first === 'string' && !(first in newErrors)) {
+          (newErrors as Record<string, string>)[first] = issue.message;
         }
       }
       setFieldErrors(newErrors);
       return;
     }
 
-    const trimmedTitulo = result.data.titulo ? result.data.titulo.trim() : '';
-    const trimmedProfesion = result.data.profesion ? result.data.profesion.trim() : '';
+    const tituloValue = result.data.titulo?.trim?.() ?? '';
+    const profesionValue = result.data.profesion?.trim?.() ?? '';
 
-    const basePayload: TeacherPayload = {
-      persona_id: result.data.persona_id,
-    };
+    let payload: TeacherPayload;
 
-    if (trimmedTitulo.length > 0) {
-      basePayload.titulo = trimmedTitulo;
+    if (result.data.personMode === 'existing') {
+      payload = {
+        persona_id: result.data.persona_id,
+      };
+    } else {
+      const personaPayload: PersonPayload = {
+        nombres: result.data.persona.nombres,
+        apellidos: result.data.persona.apellidos,
+        sexo: result.data.persona.sexo,
+        fecha_nacimiento: result.data.persona.fecha_nacimiento,
+        celular: result.data.persona.celular,
+      };
+
+      if (result.data.persona.direccion) {
+        personaPayload.direccion = result.data.persona.direccion;
+      }
+
+      if (result.data.persona.ci_numero) {
+        personaPayload.ci_numero = result.data.persona.ci_numero;
+      }
+
+      if (result.data.persona.ci_complemento) {
+        personaPayload.ci_complemento = result.data.persona.ci_complemento;
+      }
+
+      if (result.data.persona.ci_expedicion) {
+        personaPayload.ci_expedicion = result.data.persona.ci_expedicion;
+      }
+
+      payload = {
+        persona: personaPayload,
+      };
+    }
+
+    if (tituloValue.length > 0) {
+      payload.titulo = tituloValue;
     } else if (isEditing && originalTeacher && (originalTeacher.titulo ?? '') !== '') {
-      basePayload.titulo = null;
+      payload.titulo = null;
     }
 
-    if (trimmedProfesion.length > 0) {
-      basePayload.profesion = trimmedProfesion;
+    if (profesionValue.length > 0) {
+      payload.profesion = profesionValue;
     } else if (isEditing && originalTeacher && (originalTeacher.profesion ?? '') !== '') {
-      basePayload.profesion = null;
+      payload.profesion = null;
     }
 
-    let payloadToSend: TeacherPayload | Partial<TeacherPayload> = basePayload;
+    let payloadToSend: TeacherPayload | Partial<TeacherPayload> = payload;
 
     if (isEditing && originalTeacher) {
-      const filtered: Partial<TeacherPayload> = { ...basePayload };
+      const filtered: Partial<TeacherPayload> = { ...payload };
 
-      if (filtered.persona_id === originalTeacher.persona_id) {
+      if ('persona_id' in filtered && filtered.persona_id === originalTeacher.persona_id) {
         delete filtered.persona_id;
       }
 
-      if ((filtered.titulo ?? null) === (originalTeacher.titulo ?? null)) {
+      if ('titulo' in filtered && (filtered.titulo ?? null) === (originalTeacher.titulo ?? null)) {
         delete filtered.titulo;
       }
 
-      if ((filtered.profesion ?? null) === (originalTeacher.profesion ?? null)) {
+      if ('profesion' in filtered && (filtered.profesion ?? null) === (originalTeacher.profesion ?? null)) {
         delete filtered.profesion;
       }
 
@@ -233,7 +427,7 @@ export default function TeacherForm() {
     mutation.mutate(payloadToSend);
   };
 
-  const updateField = (field: keyof TeacherFormState) => (value: string) => {
+  const updateTopLevelField = (field: 'persona_id' | 'titulo' | 'profesion') => (value: string) => {
     setSubmitError('');
     setFieldErrors((previous) => {
       if (!previous[field]) {
@@ -244,6 +438,50 @@ export default function TeacherForm() {
       return next;
     });
     setForm((previous) => ({ ...previous, [field]: value }));
+  };
+
+  const updatePersonaField = (field: keyof PersonFormState) => (value: string) => {
+    setSubmitError('');
+    clearPersonaError(field);
+    setForm((previous) => ({
+      ...previous,
+      persona: {
+        ...previous.persona,
+        [field]: value,
+      },
+    }));
+  };
+
+  const handlePersonModeChange = (mode: PersonMode) => {
+    setSubmitError('');
+    setFieldErrors((previous) => {
+      if (mode === 'existing') {
+        if (!previous.persona) {
+          return previous;
+        }
+        const next = { ...previous };
+        delete next.persona;
+        return next;
+      }
+
+      if (!previous.persona_id) {
+        return previous;
+      }
+
+      const next = { ...previous };
+      delete next.persona_id;
+      return next;
+    });
+
+    setForm((previous) => ({
+      ...previous,
+      personMode: mode,
+      persona_id: mode === 'existing' ? previous.persona_id : '',
+      persona:
+        mode === 'new' && previous.personMode === 'existing'
+          ? createEmptyPerson()
+          : previous.persona,
+    }));
   };
 
   if (isEditing && teacherQuery.isLoading) {
@@ -257,22 +495,198 @@ export default function TeacherForm() {
   const title = isEditing ? 'Editar docente' : 'Nuevo docente';
 
   return (
-    <div className="bg-white rounded-2xl shadow p-4 max-w-xl">
+    <div className="bg-white rounded-2xl shadow p-4 max-w-3xl">
       <h1 className="text-lg font-semibold mb-4">{title}</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-persona-id">
-            ID de la persona
-          </label>
-          <input
-            id="teacher-persona-id"
-            className="w-full border rounded px-3 py-2"
-            value={form.persona_id}
-            onChange={(event) => updateField('persona_id')(event.target.value)}
-            inputMode="numeric"
-          />
-          {fieldErrors.persona_id && <p className="text-sm text-red-600 mt-1">{fieldErrors.persona_id}</p>}
+          <span className="block text-sm font-medium text-gray-600">Persona asociada</span>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="radio"
+                name="teacher-person-mode"
+                value="existing"
+                checked={form.personMode === 'existing'}
+                onChange={() => handlePersonModeChange('existing')}
+              />
+              Vincular persona existente
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="radio"
+                name="teacher-person-mode"
+                value="new"
+                checked={form.personMode === 'new'}
+                onChange={() => handlePersonModeChange('new')}
+              />
+              Registrar nueva persona
+            </label>
+          </div>
         </div>
+
+        {form.personMode === 'existing' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-persona-id">
+              ID de la persona
+            </label>
+            <input
+              id="teacher-persona-id"
+              className="w-full border rounded px-3 py-2"
+              value={form.persona_id}
+              onChange={(event) => updateTopLevelField('persona_id')(event.target.value)}
+              inputMode="numeric"
+            />
+            {fieldErrors.persona_id && <p className="text-sm text-red-600 mt-1">{fieldErrors.persona_id}</p>}
+          </div>
+        )}
+
+        {form.personMode === 'new' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-nombres">
+                  Nombres
+                </label>
+                <input
+                  id="teacher-person-nombres"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.persona.nombres}
+                  onChange={(event) => updatePersonaField('nombres')(event.target.value)}
+                />
+                {fieldErrors.persona?.nombres && (
+                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.nombres}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-apellidos">
+                  Apellidos
+                </label>
+                <input
+                  id="teacher-person-apellidos"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.persona.apellidos}
+                  onChange={(event) => updatePersonaField('apellidos')(event.target.value)}
+                />
+                {fieldErrors.persona?.apellidos && (
+                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.apellidos}</p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-sexo">
+                  Sexo
+                </label>
+                <select
+                  id="teacher-person-sexo"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.persona.sexo}
+                  onChange={(event) => updatePersonaField('sexo')(event.target.value as PersonFormState['sexo'])}
+                >
+                  <option value="">Selecciona…</option>
+                  {SEX_CODES.map((option) => (
+                    <option key={option} value={option}>
+                      {SEX_LABELS[option]}
+                    </option>
+                  ))}
+                </select>
+                {fieldErrors.persona?.sexo && (
+                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.sexo}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-fecha-nacimiento">
+                  Fecha de nacimiento
+                </label>
+                <input
+                  type="date"
+                  id="teacher-person-fecha-nacimiento"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.persona.fecha_nacimiento}
+                  onChange={(event) => updatePersonaField('fecha_nacimiento')(event.target.value)}
+                />
+                {fieldErrors.persona?.fecha_nacimiento && (
+                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.fecha_nacimiento}</p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-celular">
+                  Celular
+                </label>
+                <input
+                  id="teacher-person-celular"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.persona.celular}
+                  onChange={(event) => updatePersonaField('celular')(event.target.value)}
+                />
+                {fieldErrors.persona?.celular && (
+                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.celular}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-direccion">
+                  Dirección
+                </label>
+                <input
+                  id="teacher-person-direccion"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.persona.direccion}
+                  onChange={(event) => updatePersonaField('direccion')(event.target.value)}
+                />
+                {fieldErrors.persona?.direccion && (
+                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.direccion}</p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-ci-numero">
+                  N° de CI (opcional)
+                </label>
+                <input
+                  id="teacher-person-ci-numero"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.persona.ci_numero}
+                  onChange={(event) => updatePersonaField('ci_numero')(event.target.value)}
+                />
+                {fieldErrors.persona?.ci_numero && (
+                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.ci_numero}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-ci-complemento">
+                  Complemento
+                </label>
+                <input
+                  id="teacher-person-ci-complemento"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.persona.ci_complemento}
+                  onChange={(event) => updatePersonaField('ci_complemento')(event.target.value)}
+                />
+                {fieldErrors.persona?.ci_complemento && (
+                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.ci_complemento}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-ci-expedicion">
+                  Expedición
+                </label>
+                <input
+                  id="teacher-person-ci-expedicion"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.persona.ci_expedicion}
+                  onChange={(event) => updatePersonaField('ci_expedicion')(event.target.value)}
+                />
+                {fieldErrors.persona?.ci_expedicion && (
+                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.ci_expedicion}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-titulo">
             Título profesional
@@ -281,7 +695,7 @@ export default function TeacherForm() {
             id="teacher-titulo"
             className="w-full border rounded px-3 py-2"
             value={form.titulo}
-            onChange={(event) => updateField('titulo')(event.target.value)}
+            onChange={(event) => updateTopLevelField('titulo')(event.target.value)}
             maxLength={120}
           />
           {fieldErrors.titulo && <p className="text-sm text-red-600 mt-1">{fieldErrors.titulo}</p>}
@@ -294,11 +708,12 @@ export default function TeacherForm() {
             id="teacher-profesion"
             className="w-full border rounded px-3 py-2"
             value={form.profesion}
-            onChange={(event) => updateField('profesion')(event.target.value)}
+            onChange={(event) => updateTopLevelField('profesion')(event.target.value)}
             maxLength={120}
           />
           {fieldErrors.profesion && <p className="text-sm text-red-600 mt-1">{fieldErrors.profesion}</p>}
         </div>
+
         {submitError && <p className="text-red-600 text-sm">{submitError}</p>}
         <div className="flex gap-2 justify-end">
           <button type="button" className="px-3 py-2 border rounded" onClick={() => navigate(-1)}>
