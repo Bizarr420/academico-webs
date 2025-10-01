@@ -104,10 +104,19 @@ export interface Student {
   persona?: Person | null;
 }
 
-export interface StudentPayload {
-  persona_id: number;
+type PersonAssociationPayload =
+  | {
+      persona_id: number;
+      persona?: never;
+    }
+  | {
+      persona_id?: never;
+      persona: PersonPayload;
+    };
+
+export type StudentPayload = PersonAssociationPayload & {
   codigo_est: string;
-}
+};
 
 export type StudentFilters = PaginationFilters;
 
@@ -169,11 +178,10 @@ export interface Teacher {
   persona?: Person | null;
 }
 
-export interface TeacherPayload {
-  persona_id: number;
+export type TeacherPayload = PersonAssociationPayload & {
   titulo?: string | null;
   profesion?: string | null;
-}
+};
 
 export type TeacherFilters = PaginationFilters;
 
