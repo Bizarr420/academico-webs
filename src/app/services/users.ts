@@ -28,7 +28,7 @@ export async function getUsers(filters: UserFilters) {
     params.search = search.trim();
   }
 
-  if (role) {
+  if (typeof role === 'string' && role.trim().length > 0) {
     params.role = role;
   }
 
@@ -54,11 +54,10 @@ export async function createUser(payload: UserPayload) {
 export async function updateUser(id: number, payload: UserPayload) {
   const body: UserPayload = {
     username: payload.username,
-    role: payload.role,
     persona_id: payload.persona_id,
   };
 
-  if (payload.email) {
+  if (payload.email !== undefined) {
     body.email = payload.email;
   }
 

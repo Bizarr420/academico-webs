@@ -41,12 +41,14 @@ const normalizeUser = (user: ApiUser | User): User => {
   const trimmedUsername = typeof username === 'string' ? username.trim() : '';
   const displayName = trimmedName || trimmedUsername || 'Usuario';
 
+  const normalizedRole = normalizeRole(role);
+
   return {
     ...rest,
     name: displayName,
     username: trimmedUsername || null,
     email: typeof email === 'string' ? email : null,
-    role: normalizeRole(role),
+    role: normalizedRole,
     vistas: normalizeViews(vistas),
   };
 };

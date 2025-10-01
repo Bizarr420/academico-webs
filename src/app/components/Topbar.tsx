@@ -18,8 +18,13 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
     const name = typeof user.name === 'string' && user.name.trim() ? user.name.trim() : null;
     const username = typeof user.username === 'string' && user.username.trim() ? user.username.trim() : null;
     const displayNameValue = name ?? username ?? 'Usuario';
-    const roleLabelValue = resolveRoleLabel(user.role) ||
-      (typeof user.role === 'string' && user.role.trim() ? 'Sin rol' : '');
+    const roleLabelValue =
+      resolveRoleLabel(user.role) ||
+      (typeof user.role === 'string' && user.role.trim()
+        ? 'Sin rol'
+        : user.role === null
+          ? 'Sin rol'
+          : '');
 
     return { displayName: displayNameValue, roleLabel: roleLabelValue };
   }, [user]);

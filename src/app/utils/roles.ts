@@ -26,12 +26,16 @@ const sanitizeRole = (value: string): string => {
 
 const INVALID_ROLE_VALUES = new Set(['', 'undefined', 'null', 'none', 'ninguno']);
 
-export const normalizeRole = (role: Role | string): Role => {
+export const normalizeRole = (role: Role | string | null | undefined): Role | null => {
+  if (role === null || role === undefined) {
+    return null;
+  }
+
   const raw = typeof role === 'string' ? role : `${role}`;
   const sanitized = sanitizeRole(raw);
 
   if (INVALID_ROLE_VALUES.has(sanitized)) {
-    return '' as Role;
+    return null;
   }
 
   const alias = ROLE_ALIASES[sanitized];
@@ -60,10 +64,6 @@ const capitalizeWord = (word: string) =>
   word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 
 export const resolveRoleLabel = (role: Role | string | null | undefined): string => {
-  if (typeof role !== 'string') {
-    return '';
-  }
-
   const normalized = normalizeRole(role);
 
   if (!normalized) {

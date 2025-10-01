@@ -3,20 +3,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import { deleteUser, getUsers, USERS_PAGE_SIZE } from '@/app/services/users';
-import { getRoleOptions } from '@/app/services/roles';
 import { resolveRoleLabel } from '@/app/utils/roles';
-import type { ManagedUser, Role, RoleOption } from '@/app/types';
+import type { ManagedUser } from '@/app/types';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-type RoleFilter = Role | 'all';
-
-const formatRoleLabel = (role: Role) => resolveRoleLabel(role) || 'Sin rol';
+const formatRoleLabel = (role: ManagedUser['role']) => resolveRoleLabel(role) || 'Sin rol';
 
 export default function UsersList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const queryClient = useQueryClient();
 
@@ -30,31 +26,15 @@ export default function UsersList() {
   }, [search]);
 
   const { data, isLoading, isError, isFetching } = useQuery({
-    queryKey: ['users', page, debouncedSearch, roleFilter],
+    queryKey: ['users', page, debouncedSearch],
     queryFn: async () =>
       getUsers({
         page,
         search: debouncedSearch || undefined,
         page_size: USERS_PAGE_SIZE,
-        role: roleFilter === 'all' ? undefined : roleFilter,
       }),
     placeholderData: (previousData) => previousData,
   });
-
-  const rolesQuery = useQuery({
-    queryKey: ['role-options'],
-    queryFn: async () => getRoleOptions(),
-  });
-
-  useEffect(() => {
-    if (roleFilter === 'all') {
-      return;
-    }
-    const options = rolesQuery.data ?? [];
-    if (options.every((option) => option.clave !== roleFilter)) {
-      setRoleFilter('all');
-    }
-  }, [roleFilter, rolesQuery.data]);
 
   const users: ManagedUser[] = useMemo(() => data?.items ?? [], [data?.items]);
   const pageSize = data?.page_size ?? USERS_PAGE_SIZE;
@@ -77,16 +57,6 @@ export default function UsersList() {
     deleteMutation.mutate(id);
   };
 
-  const roleOptions = useMemo<RoleOption[]>(() => rolesQuery.data ?? [], [rolesQuery.data]);
-  const roleNameByKey = useMemo(
-    () =>
-      roleOptions.reduce<Record<string, string>>((map, option) => {
-        map[option.clave] = option.nombre;
-        return map;
-      }, {}),
-    [roleOptions],
-  );
-
   return (
     <div className="bg-white rounded-2xl shadow p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -96,7 +66,7 @@ export default function UsersList() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="users-search">
             Buscar
@@ -108,30 +78,6 @@ export default function UsersList() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="users-role-filter">
-            Rol
-          </label>
-          <select
-            id="users-role-filter"
-            className="border rounded px-3 py-2 w-full"
-            value={roleFilter}
-            onChange={(event) => {
-              setRoleFilter(event.target.value as RoleFilter);
-              setPage(1);
-            }}
-          >
-            <option value="all">Todos</option>
-            {roleOptions.map((option) => (
-              <option key={option.id} value={option.clave}>
-                {option.nombre}
-              </option>
-            ))}
-          </select>
-          {rolesQuery.isError && (
-            <p className="text-sm text-red-600 mt-1">No se pudieron cargar los roles.</p>
-          )}
         </div>
       </div>
 
@@ -156,7 +102,7 @@ export default function UsersList() {
               {users.map((user) => (
                 <tr key={user.id} className="border-b last:border-0">
                   <td className="py-2">{user.username}</td>
-                  <td>{roleNameByKey[user.role] ?? formatRoleLabel(user.role)}</td>
+                  <td>{formatRoleLabel(user.role)}</td>
                   <td>
                     {user.persona
                       ? `${user.persona.apellidos} ${user.persona.nombres}`.trim()
