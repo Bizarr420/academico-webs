@@ -97,10 +97,31 @@ export interface PaginationFilters {
   page_size?: number;
 }
 
+export const STUDENT_SITUATIONS = ['REGULAR', 'RETIRADO', 'EGRESADO', 'CONDICIONAL'] as const;
+export type StudentSituation = (typeof STUDENT_SITUATIONS)[number];
+
+export const STUDENT_STATES = ['ACTIVO', 'INACTIVO'] as const;
+export type StudentStatus = (typeof STUDENT_STATES)[number];
+
+export const STUDENT_SITUATION_LABELS: Record<StudentSituation, string> = {
+  REGULAR: 'Regular',
+  RETIRADO: 'Retirado',
+  EGRESADO: 'Egresado',
+  CONDICIONAL: 'Condicional',
+};
+
+export const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
+  ACTIVO: 'Activo',
+  INACTIVO: 'Inactivo',
+};
+
 export interface Student {
   id: number;
   persona_id: number;
   codigo_est: string;
+  anio_ingreso: number | null;
+  situacion: StudentSituation | null;
+  estado: StudentStatus | null;
   persona?: Person | null;
 }
 
@@ -116,6 +137,9 @@ type PersonAssociationPayload =
 
 export type StudentPayload = PersonAssociationPayload & {
   codigo_est: string;
+  anio_ingreso?: number | null;
+  situacion?: StudentSituation | null;
+  estado?: StudentStatus | null;
 };
 
 export type StudentFilters = PaginationFilters;
