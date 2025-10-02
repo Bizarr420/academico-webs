@@ -27,6 +27,8 @@ interface ApiSubject {
   area?: string | null;
   estado?: string | null;
   descripcion?: string | null;
+  activo?: boolean | null;
+  eliminado_en?: string | null;
 }
 
 const extractCourseName = (subject: ApiSubject) =>
@@ -49,6 +51,8 @@ export const mapSubjectFromApi = (subject: ApiSubject | Subject): Subject => {
     area: base.area ?? subject.area ?? null,
     estado: base.estado ?? subject.estado ?? null,
     descripcion: base.descripcion ?? subject.descripcion ?? null,
+    activo: base.activo ?? subject.activo ?? null,
+    eliminado_en: base.eliminado_en ?? subject.eliminado_en ?? null,
   } satisfies Subject;
 };
 
@@ -68,7 +72,15 @@ const mapSubjectPayloadToApi = (payload: SubjectPayload) => {
 };
 
 export async function getSubjects(filters: SubjectFilters): Promise<Paginated<Subject>> {
-  const { page, search, page_size = SUBJECTS_PAGE_SIZE, curso_id } = filters;
+  const {
+    page,
+    search,
+    page_size = SUBJECTS_PAGE_SIZE,
+    curso_id,
+    estado,
+    incluir_inactivos,
+    activo,
+  } = filters;
   const params: Record<string, unknown> = {
     page,
     page_size,
@@ -80,6 +92,18 @@ export async function getSubjects(filters: SubjectFilters): Promise<Paginated<Su
 
   if (typeof curso_id === 'number') {
     params.curso_id = curso_id;
+  }
+
+  if (typeof estado === 'string' && estado.trim().length > 0) {
+    params.estado = estado.trim();
+  }
+
+  if (typeof activo === 'boolean') {
+    params.activo = activo ? 1 : 0;
+  }
+
+  if (incluir_inactivos) {
+    params.incluir_inactivos = 1;
   }
 
   const { data } = await api.get<PaginatedResponse<ApiSubject>>(withTrailingSlash(SUBJECTS_ENDPOINT), {
@@ -111,6 +135,14 @@ export async function updateSubject(id: number, payload: SubjectPayload) {
 
 export async function deleteSubject(id: number) {
   await api.delete(`${SUBJECTS_ENDPOINT}/${id}`);
+}
+
+export async function restoreSubject(id: number) {
+  const { data } = await api.post<ApiSubject>(
+    `${withTrailingSlash(SUBJECTS_ENDPOINT)}${id}/restore`,
+    undefined,
+  );
+  return mapSubjectFromApi(data);
 }
 
 export async function getAllSubjects(): Promise<Subject[]> {

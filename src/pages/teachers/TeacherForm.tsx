@@ -5,9 +5,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { isAxiosError } from 'axios';
 
-import { createTeacher, getTeacher, updateTeacher } from '@/app/services/teachers';
+import { createTeacher, getTeacher, restoreTeacher, updateTeacher } from '@/app/services/teachers';
 import { SEX_CODES, SEX_LABELS } from '@/app/types';
 import type { Paginated, PersonPayload, Sexo, Teacher, TeacherPayload } from '@/app/types';
+import { extractInactiveResourceId } from '@/app/utils/api-errors';
+import { resolveStatus } from '@/app/utils/status';
 
 const textFieldSchema = z
   .string()
@@ -175,6 +177,8 @@ export default function TeacherForm() {
   const [form, setForm] = useState<TeacherFormState>(() => createInitialFormState());
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
+  const [restoreSuggestion, setRestoreSuggestion] = useState<{ id: number | null; message: string } | null>(null);
   const [originalTeacher, setOriginalTeacher] = useState<Teacher | null>(null);
 
   const teacherQuery = useQuery({
@@ -183,33 +187,68 @@ export default function TeacherForm() {
     enabled: isEditing,
   });
 
+  const syncFormWithTeacher = (teacher: Teacher) => {
+    const persona = teacher.persona;
+    const fechaNacimiento = persona?.fecha_nacimiento ?? '';
+    setForm({
+      personMode: 'existing',
+      persona_id: String(teacher.persona_id ?? ''),
+      titulo: teacher.titulo ?? '',
+      profesion: teacher.profesion ?? '',
+      persona: {
+        nombres: persona?.nombres ?? '',
+        apellidos: persona?.apellidos ?? '',
+        sexo: persona?.sexo ?? '',
+        fecha_nacimiento: fechaNacimiento ? fechaNacimiento.slice(0, 10) : '',
+        celular: persona?.celular ?? '',
+        direccion: persona?.direccion ?? '',
+        ci_numero: persona?.ci_numero ?? '',
+        ci_complemento: persona?.ci_complemento ?? '',
+        ci_expedicion: persona?.ci_expedicion ?? '',
+      },
+    });
+    setOriginalTeacher(teacher);
+  };
+
   useEffect(() => {
     if (teacherQuery.data) {
-      const persona = teacherQuery.data.persona;
-      const fechaNacimiento = persona?.fecha_nacimiento ?? '';
-      setForm({
-        personMode: 'existing',
-        persona_id: String(teacherQuery.data.persona_id ?? ''),
-        titulo: teacherQuery.data.titulo ?? '',
-        profesion: teacherQuery.data.profesion ?? '',
-        persona: {
-          nombres: persona?.nombres ?? '',
-          apellidos: persona?.apellidos ?? '',
-          sexo: persona?.sexo ?? '',
-          fecha_nacimiento: fechaNacimiento ? fechaNacimiento.slice(0, 10) : '',
-          celular: persona?.celular ?? '',
-          direccion: persona?.direccion ?? '',
-          ci_numero: persona?.ci_numero ?? '',
-          ci_complemento: persona?.ci_complemento ?? '',
-          ci_expedicion: persona?.ci_expedicion ?? '',
-        },
-      });
-      setOriginalTeacher(teacherQuery.data);
+      syncFormWithTeacher(teacherQuery.data);
     } else if (!isEditing) {
       setForm(createInitialFormState());
       setOriginalTeacher(null);
     }
   }, [isEditing, teacherQuery.data]);
+
+  const currentTeacher = teacherQuery.data ?? originalTeacher;
+  const teacherStatus = currentTeacher
+    ? resolveStatus({ estado: currentTeacher.estado ?? undefined, activo: currentTeacher.activo })
+    : null;
+  const isInactive = teacherStatus?.isActive === false;
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: number) => restoreTeacher(id),
+    onSuccess: (teacher) => {
+      updateTeacherCollections(queryClient, teacher);
+      queryClient.setQueryData(['teacher', teacher.id], teacher);
+      setRestoreSuggestion(null);
+
+      if (teacherId && Number(teacherId) === teacher.id) {
+        queryClient.setQueryData(['teacher', teacherId], teacher);
+        syncFormWithTeacher(teacher);
+        setInfoMessage('Registro restaurado y activo.');
+        setSubmitError('');
+        return;
+      }
+
+      setInfoMessage('Registro restaurado y activo.');
+      setSubmitError('');
+      navigate(`/docentes/${teacher.id}/editar`);
+    },
+    onError: () => {
+      setSubmitError('No se pudo restaurar el registro.');
+      setInfoMessage('');
+    },
+  });
 
   const mutation = useMutation({
     mutationFn: async (payload: TeacherPayload | Partial<TeacherPayload>) =>
@@ -221,10 +260,23 @@ export default function TeacherForm() {
       }
       queryClient.setQueryData(['teacher', String(teacher.id)], teacher);
       setOriginalTeacher(teacher);
+      setInfoMessage('');
+      setRestoreSuggestion(null);
       navigate('/docentes');
     },
     onError: (error: unknown) => {
       if (isAxiosError(error) && error.response) {
+        if (error.response.status === 409) {
+          const suggestedId = extractInactiveResourceId(error.response.data);
+          setRestoreSuggestion({
+            id: suggestedId,
+            message: 'Existe un registro inactivo con ese código. ¿Deseas restaurarlo?',
+          });
+          setSubmitError('Existe un registro inactivo con ese código. ¿Deseas restaurarlo?');
+          setInfoMessage('');
+          return;
+        }
+
         const detail = extractErrorDetail(error.response.data);
         const normalizedDetail = detail.toLowerCase();
 
@@ -268,10 +320,12 @@ export default function TeacherForm() {
           }
         }
 
+        setRestoreSuggestion(null);
         setSubmitError(detail || 'No se pudo guardar.');
         return;
       }
 
+      setRestoreSuggestion(null);
       setSubmitError('No se pudo guardar.');
     },
   });
@@ -296,6 +350,13 @@ export default function TeacherForm() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError('');
+    setInfoMessage('');
+    setRestoreSuggestion(null);
+
+    if (isEditing && isInactive) {
+      setSubmitError('Este registro está inactivo. Restaura el registro para poder editarlo.');
+      return;
+    }
 
     const personaInput = {
       nombres: form.persona.nombres.trim(),
@@ -484,6 +545,24 @@ export default function TeacherForm() {
     }));
   };
 
+  const handleRestoreClick = () => {
+    if (!teacherId) {
+      return;
+    }
+    setSubmitError('');
+    setInfoMessage('');
+    restoreMutation.mutate(Number(teacherId));
+  };
+
+  const handleRestoreSuggestion = () => {
+    if (!restoreSuggestion || !restoreSuggestion.id) {
+      return;
+    }
+    setSubmitError('');
+    setInfoMessage('');
+    restoreMutation.mutate(restoreSuggestion.id);
+  };
+
   if (isEditing && teacherQuery.isLoading) {
     return <p>Cargando docente…</p>;
   }
@@ -497,6 +576,33 @@ export default function TeacherForm() {
   return (
     <div className="bg-white rounded-2xl shadow p-4 max-w-3xl">
       <h1 className="text-lg font-semibold mb-4">{title}</h1>
+      {isEditing && isInactive && (
+        <div className="mb-4 flex flex-col gap-2 rounded border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 sm:flex-row sm:items-center sm:justify-between">
+          <span>Este registro está inactivo. ¿Deseas restaurarlo?</span>
+          <button
+            type="button"
+            className="rounded bg-yellow-600 px-3 py-2 text-white disabled:opacity-50"
+            onClick={handleRestoreClick}
+            disabled={restoreMutation.isPending}
+          >
+            {restoreMutation.isPending ? 'Restaurando…' : 'Restaurar'}
+          </button>
+        </div>
+      )}
+      {restoreSuggestion && (
+        <div className="mb-4 flex flex-col gap-2 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 sm:flex-row sm:items-center sm:justify-between">
+          <span>{restoreSuggestion.message}</span>
+          <button
+            type="button"
+            className="rounded bg-blue-600 px-3 py-2 text-white disabled:opacity-50"
+            onClick={handleRestoreSuggestion}
+            disabled={!restoreSuggestion.id || restoreMutation.isPending}
+            title={restoreSuggestion.id ? undefined : 'ID de registro no disponible'}
+          >
+            {restoreMutation.isPending ? 'Restaurando…' : 'Restaurar registro existente'}
+          </button>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <span className="block text-sm font-medium text-gray-600">Persona asociada</span>
@@ -714,12 +820,17 @@ export default function TeacherForm() {
           {fieldErrors.profesion && <p className="text-sm text-red-600 mt-1">{fieldErrors.profesion}</p>}
         </div>
 
+        {infoMessage && <p className="text-green-600 text-sm">{infoMessage}</p>}
         {submitError && <p className="text-red-600 text-sm">{submitError}</p>}
         <div className="flex gap-2 justify-end">
           <button type="button" className="px-3 py-2 border rounded" onClick={() => navigate(-1)}>
             Cancelar
           </button>
-          <button className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50" disabled={mutation.isPending}>
+          <button
+            className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50"
+            disabled={mutation.isPending || (isEditing && isInactive)}
+            title={isEditing && isInactive ? 'Restaura el registro para habilitar la edición.' : undefined}
+          >
             {mutation.isPending ? 'Guardando…' : 'Guardar'}
           </button>
         </div>

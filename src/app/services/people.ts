@@ -25,6 +25,9 @@ const mapPerson = (person: ApiPerson): Person => ({
   ci_complemento: person.ci_complemento ?? null,
   ci_expedicion: person.ci_expedicion ?? null,
   correo: person.correo ?? null,
+  estado: person.estado ?? null,
+  activo: person.activo ?? null,
+  eliminado_en: person.eliminado_en ?? null,
 });
 
 const mapPayloadToApi = (payload: PersonPayload) => {
@@ -46,7 +49,7 @@ const mapPayloadToApi = (payload: PersonPayload) => {
 };
 
 export async function getPeople(filters: PersonFilters): Promise<Paginated<Person>> {
-  const { page, search, page_size = PEOPLE_PAGE_SIZE } = filters;
+  const { page, search, page_size = PEOPLE_PAGE_SIZE, estado, incluir_inactivos, activo } = filters;
   const params: Record<string, unknown> = {
     page,
     page_size,
@@ -54,6 +57,18 @@ export async function getPeople(filters: PersonFilters): Promise<Paginated<Perso
 
   if (typeof search === 'string' && search.trim().length > 0) {
     params.search = search.trim();
+  }
+
+  if (typeof estado === 'string' && estado.trim().length > 0) {
+    params.estado = estado.trim();
+  }
+
+  if (typeof activo === 'boolean') {
+    params.activo = activo ? 1 : 0;
+  }
+
+  if (incluir_inactivos) {
+    params.incluir_inactivos = 1;
   }
 
   const { data } = await api.get<PaginatedResponse<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), {
@@ -87,6 +102,14 @@ export async function updatePerson(id: number, payload: PersonPayload) {
 
 export async function deletePerson(id: number) {
   await api.delete(`${PEOPLE_ENDPOINT}/${id}`);
+}
+
+export async function restorePerson(id: number) {
+  const { data } = await api.post<ApiPerson>(
+    `${withTrailingSlash(PEOPLE_ENDPOINT)}${id}/restore`,
+    undefined,
+  );
+  return mapPerson(data);
 }
 
 export async function getAllPeople() {

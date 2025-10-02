@@ -1,3 +1,6 @@
+import StatusBadge from '@/app/components/StatusBadge';
+import { formatDateTime } from '@/app/utils/dates';
+import { resolveStatus } from '@/app/utils/status';
 import type { Student } from '@/app/types';
 import {
   SEX_LABELS,
@@ -32,6 +35,8 @@ export function StudentSummary({ student, className }: StudentSummaryProps) {
 
   const sexoLabel = persona?.sexo ? SEX_LABELS[persona.sexo] : 'No especificado';
   const personaName = fullName || (persona ? `Persona ${student.persona_id}` : 'Sin información');
+  const status = resolveStatus({ estado: student.estado ?? undefined, activo: student.activo });
+  const isInactive = status.isActive === false;
 
   const containerClassName = joinClassNames(
     'rounded-xl border border-gray-200 bg-white p-4',
@@ -58,9 +63,13 @@ export function StudentSummary({ student, className }: StudentSummaryProps) {
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Estado</dt>
-            <dd className="text-sm text-gray-900">
-              {formatEnumValue(student.estado, STUDENT_STATUS_LABELS)}
+            <dd className="flex items-center gap-2 text-sm text-gray-900">
+              <StatusBadge estado={student.estado ?? undefined} activo={student.activo ?? undefined} />
+              <span>{formatEnumValue(student.estado, STUDENT_STATUS_LABELS)}</span>
             </dd>
+            {isInactive && student.eliminado_en && (
+              <p className="text-xs text-gray-500">Desactivado el {formatDateTime(student.eliminado_en)}</p>
+            )}
           </div>
         </dl>
         <dl className="space-y-2 text-sm">

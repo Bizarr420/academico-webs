@@ -35,6 +35,9 @@ interface ApiCourse {
   grado?: number | null;
   paralelos?: ApiCourseParallel[] | null;
   materias?: ApiCourseSubject[] | null;
+  estado?: string | null;
+  activo?: boolean | null;
+  eliminado_en?: string | null;
 }
 
 const mapCourseParallel = (parallel: ApiCourseParallel): CourseParallel => ({
@@ -56,6 +59,9 @@ const mapCourse = (course: ApiCourse): Course => ({
   materias: Array.isArray(course.materias)
     ? course.materias.map((subject) => mapSubjectFromApi(subject))
     : undefined,
+  estado: course.estado ?? null,
+  activo: course.activo ?? null,
+  eliminado_en: course.eliminado_en ?? null,
 });
 
 const mapCoursePayloadToApi = (payload: CoursePayload) => {
@@ -72,7 +78,7 @@ const mapCoursePayloadToApi = (payload: CoursePayload) => {
 };
 
 export async function getCourses(filters: CourseFilters): Promise<Paginated<Course>> {
-  const { page, search, page_size = COURSES_PAGE_SIZE } = filters;
+  const { page, search, page_size = COURSES_PAGE_SIZE, estado, incluir_inactivos, activo } = filters;
   const params: Record<string, unknown> = {
     page,
     page_size,
@@ -80,6 +86,18 @@ export async function getCourses(filters: CourseFilters): Promise<Paginated<Cour
 
   if (typeof search === 'string' && search.trim().length > 0) {
     params.search = search.trim();
+  }
+
+  if (typeof estado === 'string' && estado.trim().length > 0) {
+    params.estado = estado.trim();
+  }
+
+  if (typeof activo === 'boolean') {
+    params.activo = activo ? 1 : 0;
+  }
+
+  if (incluir_inactivos) {
+    params.incluir_inactivos = 1;
   }
 
   const { data } = await api.get<PaginatedResponse<ApiCourse>>(withTrailingSlash(COURSES_ENDPOINT), {
@@ -118,8 +136,17 @@ export async function getAllCourses(): Promise<Course[]> {
     params: {
       page: 1,
       page_size: 1000,
+      estado: 'ACTIVO',
     },
   });
   const normalized = normalizePaginatedResponse(data);
   return normalized.items.map((course) => mapCourse(course as ApiCourse));
+}
+
+export async function restoreCourse(id: number) {
+  const { data } = await api.post<ApiCourse>(
+    `${withTrailingSlash(COURSES_ENDPOINT)}${id}/restore`,
+    undefined,
+  );
+  return mapCourse(data);
 }
