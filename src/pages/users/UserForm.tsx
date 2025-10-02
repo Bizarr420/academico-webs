@@ -5,12 +5,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { getAllPeople } from '@/app/services/people';
+import { getAllRoles } from '@/app/services/roles';
 import { createUser, getUser, updateUser } from '@/app/services/users';
-import type { Person, UserPayload } from '@/app/types';
+import type { Person, RoleSummary, UserPayload } from '@/app/types';
 
 const userSchema = z.object({
   username: z.string().min(3, 'Ingresa el nombre de usuario'),
   persona_id: z.number().int('Selecciona una persona').min(1, 'Selecciona una persona'),
+  rol_id: z.number().int('Selecciona un rol').min(1, 'Selecciona un rol'),
   email: z.string().email('Ingresa un correo válido').optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
 });
@@ -18,6 +20,7 @@ const userSchema = z.object({
 type UserFormState = {
   username: string;
   personaId: string;
+  rolId: string;
   email: string;
   password: string;
 };
@@ -25,6 +28,7 @@ type UserFormState = {
 type FieldErrors = Partial<{
   username: string;
   persona_id: string;
+  rol_id: string;
   email: string;
   password: string;
 }>;
@@ -32,6 +36,7 @@ type FieldErrors = Partial<{
 const initialValues: UserFormState = {
   username: '',
   personaId: '',
+  rolId: '',
   email: '',
   password: '',
 };
@@ -50,6 +55,11 @@ export default function UserForm() {
     queryFn: async () => getAllPeople(),
   });
 
+  const rolesQuery = useQuery({
+    queryKey: ['roles', 'all'],
+    queryFn: async () => getAllRoles(),
+  });
+
   const userQuery = useQuery({
     queryKey: ['user', userId],
     queryFn: async () => (userId ? getUser(Number(userId)) : null),
@@ -61,6 +71,7 @@ export default function UserForm() {
       setForm({
         username: userQuery.data.username,
         personaId: userQuery.data.persona?.id?.toString() ?? userQuery.data.persona_id?.toString() ?? '',
+        rolId: userQuery.data.rol_id != null ? userQuery.data.rol_id.toString() : '',
         email: userQuery.data.email ?? '',
         password: '',
       });
@@ -92,10 +103,12 @@ export default function UserForm() {
     setSubmitError('');
 
     const personaIdNumber = Number(form.personaId);
+    const rolIdNumber = Number(form.rolId);
 
     const result = userSchema.safeParse({
       username: form.username.trim(),
       persona_id: Number.isNaN(personaIdNumber) ? 0 : personaIdNumber,
+      rol_id: Number.isNaN(rolIdNumber) ? 0 : rolIdNumber,
       email: form.email.trim() || undefined,
       password: form.password.trim() || undefined,
     });
@@ -121,6 +134,7 @@ export default function UserForm() {
     const payload: UserPayload = {
       username: result.data.username,
       persona_id: result.data.persona_id,
+      rol_id: result.data.rol_id,
       email: result.data.email,
       password: result.data.password,
     };
@@ -129,7 +143,7 @@ export default function UserForm() {
 
   const updateField = <TField extends keyof UserFormState>(field: TField) => (value: UserFormState[TField]) => {
     setFieldErrors((previous) => {
-      const targetField = field === 'personaId' ? 'persona_id' : field;
+      const targetField = field === 'personaId' ? 'persona_id' : field === 'rolId' ? 'rol_id' : field;
       if (!previous[targetField as keyof FieldErrors]) {
         return previous;
       }
@@ -156,6 +170,23 @@ export default function UserForm() {
       return 0;
     });
   }, [peopleQuery.data]);
+
+  const roleOptions = useMemo<RoleSummary[]>(() => {
+    if (!rolesQuery.data) {
+      return [];
+    }
+    return [...rolesQuery.data].sort((a, b) => {
+      const nameA = a.nombre.toLowerCase();
+      const nameB = b.nombre.toLowerCase();
+      if (nameA < nameB) {
+        return -1;
+      }
+      if (nameA > nameB) {
+        return 1;
+      }
+      return 0;
+    });
+  }, [rolesQuery.data]);
 
   if (isEditing && userQuery.isLoading) {
     return <p>Cargando usuario…</p>;
@@ -210,6 +241,32 @@ export default function UserForm() {
           {fieldErrors.persona_id && (
             <p className="text-sm text-red-600 mt-1">{fieldErrors.persona_id}</p>
           )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600" htmlFor="user-rol">
+            Rol
+          </label>
+          <select
+            id="user-rol"
+            className="w-full border rounded px-3 py-2"
+            value={form.rolId}
+            onChange={(event) => updateField('rolId')(event.target.value)}
+            disabled={rolesQuery.isLoading}
+          >
+            <option value="">Selecciona un rol…</option>
+            {roleOptions.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.nombre}
+              </option>
+            ))}
+          </select>
+          {rolesQuery.isError && (
+            <p className="text-sm text-red-600 mt-1">No se pudieron cargar los roles.</p>
+          )}
+          {rolesQuery.isSuccess && roleOptions.length === 0 && (
+            <p className="text-sm text-gray-500 mt-1">Registra un rol antes de crear usuarios.</p>
+          )}
+          {fieldErrors.rol_id && <p className="text-sm text-red-600 mt-1">{fieldErrors.rol_id}</p>}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
