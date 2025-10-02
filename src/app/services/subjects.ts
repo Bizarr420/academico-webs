@@ -1,10 +1,71 @@
 import api, { withTrailingSlash } from '@/app/services/api';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
-import type { Paginated, PaginatedResponse, Subject, SubjectFilters, SubjectPayload } from '@/app/types';
+import type {
+  Paginated,
+  PaginatedResponse,
+  Subject,
+  SubjectFilters,
+  SubjectPayload,
+} from '@/app/types';
 
 export const SUBJECTS_PAGE_SIZE = 10;
 
 const SUBJECTS_ENDPOINT = '/materias';
+
+interface ApiSubject {
+  id: number;
+  nombre: string;
+  codigo?: string | null;
+  curso_id: number;
+  curso?: string | null;
+  curso_nombre?: string | null;
+  cursoName?: string | null;
+  paralelo?: string | null;
+  paralelo_nombre?: string | null;
+  paraleloName?: string | null;
+  paralelo_etiqueta?: string | null;
+  area?: string | null;
+  estado?: string | null;
+  descripcion?: string | null;
+}
+
+const extractCourseName = (subject: ApiSubject) =>
+  subject.curso ?? subject.curso_nombre ?? subject.cursoName ?? null;
+
+const extractParallelName = (subject: ApiSubject) =>
+  subject.paralelo ?? subject.paralelo_nombre ?? subject.paraleloName ?? subject.paralelo_etiqueta ?? null;
+
+const extractSubjectCode = (subject: ApiSubject) => subject.codigo ?? null;
+
+export const mapSubjectFromApi = (subject: ApiSubject | Subject): Subject => {
+  const base = subject as ApiSubject;
+  return {
+    id: subject.id,
+    nombre: subject.nombre,
+    codigo: extractSubjectCode(base) ?? (subject as Subject).codigo ?? '',
+    curso_id: subject.curso_id,
+    curso: extractCourseName(base) ?? subject.curso ?? null,
+    paralelo: extractParallelName(base) ?? subject.paralelo ?? null,
+    area: base.area ?? subject.area ?? null,
+    estado: base.estado ?? subject.estado ?? null,
+    descripcion: base.descripcion ?? subject.descripcion ?? null,
+  } satisfies Subject;
+};
+
+const mapSubjectPayloadToApi = (payload: SubjectPayload) => {
+  const body: Record<string, unknown> = {
+    nombre: payload.nombre,
+    codigo: payload.codigo,
+    curso_id: payload.curso_id,
+    descripcion: payload.descripcion,
+    area: payload.area,
+    estado: payload.estado,
+  };
+
+  return Object.fromEntries(
+    Object.entries(body).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+  );
+};
 
 export async function getSubjects(filters: SubjectFilters): Promise<Paginated<Subject>> {
   const { page, search, page_size = SUBJECTS_PAGE_SIZE, curso_id } = filters;
@@ -21,25 +82,31 @@ export async function getSubjects(filters: SubjectFilters): Promise<Paginated<Su
     params.curso_id = curso_id;
   }
 
-  const { data } = await api.get<PaginatedResponse<Subject>>(withTrailingSlash(SUBJECTS_ENDPOINT), {
+  const { data } = await api.get<PaginatedResponse<ApiSubject>>(withTrailingSlash(SUBJECTS_ENDPOINT), {
     params,
   });
-  return normalizePaginatedResponse(data);
+  const normalized = normalizePaginatedResponse(data);
+  return {
+    ...normalized,
+    items: normalized.items.map((subject) => mapSubjectFromApi(subject as ApiSubject)),
+  } satisfies Paginated<Subject>;
 }
 
 export async function getSubject(id: number) {
-  const { data } = await api.get<Subject>(`${SUBJECTS_ENDPOINT}/${id}`);
-  return data;
+  const { data } = await api.get<ApiSubject>(`${SUBJECTS_ENDPOINT}/${id}`);
+  return mapSubjectFromApi(data);
 }
 
 export async function createSubject(payload: SubjectPayload) {
-  const { data } = await api.post<Subject>(withTrailingSlash(SUBJECTS_ENDPOINT), payload);
-  return data;
+  const body = mapSubjectPayloadToApi(payload);
+  const { data } = await api.post<ApiSubject>(withTrailingSlash(SUBJECTS_ENDPOINT), body);
+  return mapSubjectFromApi(data);
 }
 
 export async function updateSubject(id: number, payload: SubjectPayload) {
-  const { data } = await api.put<Subject>(`${SUBJECTS_ENDPOINT}/${id}`, payload);
-  return data;
+  const body = mapSubjectPayloadToApi(payload);
+  const { data } = await api.put<ApiSubject>(`${SUBJECTS_ENDPOINT}/${id}`, body);
+  return mapSubjectFromApi(data);
 }
 
 export async function deleteSubject(id: number) {
@@ -47,11 +114,12 @@ export async function deleteSubject(id: number) {
 }
 
 export async function getAllSubjects(): Promise<Subject[]> {
-  const { data } = await api.get<PaginatedResponse<Subject>>(withTrailingSlash(SUBJECTS_ENDPOINT), {
+  const { data } = await api.get<PaginatedResponse<ApiSubject>>(withTrailingSlash(SUBJECTS_ENDPOINT), {
     params: {
       page: 1,
       page_size: 1000,
     },
   });
-  return normalizePaginatedResponse(data).items;
+  const normalized = normalizePaginatedResponse(data);
+  return normalized.items.map((subject) => mapSubjectFromApi(subject as ApiSubject));
 }

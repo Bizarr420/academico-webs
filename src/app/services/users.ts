@@ -44,6 +44,7 @@ const mapUser = (user: ApiManagedUser): ManagedUser => {
     ...user,
     role: normalizedRoles[0] ?? normalizeRole(user.role),
     roles: normalizedRoles,
+    rol_id: user.rol_id ?? null,
   };
 };
 
@@ -86,6 +87,7 @@ export async function updateUser(id: number, payload: UserPayload) {
   const body: UserPayload = {
     username: payload.username,
     persona_id: payload.persona_id,
+    rol_id: payload.rol_id,
   };
 
   if (payload.email !== undefined) {

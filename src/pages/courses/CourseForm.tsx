@@ -5,22 +5,30 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { createCourse, getCourse, updateCourse } from '@/app/services/courses';
-import type { CoursePayload } from '@/app/types';
+import { getAllLevels } from '@/app/services/levels';
+import type { CoursePayload, Level } from '@/app/types';
 
 const courseSchema = z.object({
   nombre: z.string().min(2, 'Ingresa el nombre del curso'),
-  paralelo: z.string().min(1, 'Ingresa el paralelo'),
-  nivel: z.string().optional(),
+  etiqueta: z.string().min(1, 'Ingresa la etiqueta del curso'),
+  nivel_id: z.number().int().positive('Selecciona un nivel'),
+  grado: z.number().int('Ingresa un grado válido').min(0, 'Ingresa un grado válido').optional(),
 });
 
-type CourseFormState = z.infer<typeof courseSchema>;
+type CourseFormState = {
+  nombre: string;
+  etiqueta: string;
+  nivelId: string;
+  grado: string;
+};
 
-type FieldErrors = Partial<Record<keyof CourseFormState, string>>;
+type FieldErrors = Partial<Record<'nombre' | 'etiqueta' | 'nivel_id' | 'grado', string>>;
 
 const initialValues: CourseFormState = {
   nombre: '',
-  paralelo: '',
-  nivel: '',
+  etiqueta: '',
+  nivelId: '',
+  grado: '',
 };
 
 export default function CourseForm() {
@@ -38,12 +46,21 @@ export default function CourseForm() {
     enabled: isEditing,
   });
 
+  const levelsQuery = useQuery({
+    queryKey: ['levels', 'all'],
+    queryFn: async () => getAllLevels(),
+  });
+
   useEffect(() => {
     if (courseQuery.data) {
       setForm({
         nombre: courseQuery.data.nombre,
-        paralelo: courseQuery.data.paralelo,
-        nivel: courseQuery.data.nivel ?? '',
+        etiqueta: courseQuery.data.etiqueta ?? '',
+        nivelId: courseQuery.data.nivel_id != null ? courseQuery.data.nivel_id.toString() : '',
+        grado:
+          courseQuery.data.grado !== undefined && courseQuery.data.grado !== null
+            ? courseQuery.data.grado.toString()
+            : '',
       });
     }
   }, [courseQuery.data]);
@@ -72,19 +89,42 @@ export default function CourseForm() {
     event.preventDefault();
     setSubmitError('');
 
-    const nivelValue = (form.nivel ?? '').trim();
+    const nivelIdNumber = Number(form.nivelId);
+    if (!form.nivelId || Number.isNaN(nivelIdNumber) || nivelIdNumber <= 0) {
+      setFieldErrors((previous) => ({ ...previous, nivel_id: 'Selecciona un nivel' }));
+      return;
+    }
+
+    const trimmedGrado = form.grado.trim();
+    let gradoValue: number | undefined;
+    if (trimmedGrado) {
+      const parsedGrado = Number(trimmedGrado);
+      if (!Number.isInteger(parsedGrado) || parsedGrado < 0) {
+        setFieldErrors((previous) => ({ ...previous, grado: 'Ingresa un grado válido' }));
+        return;
+      }
+      gradoValue = parsedGrado;
+    }
+
     const result = courseSchema.safeParse({
       nombre: form.nombre.trim(),
-      paralelo: form.paralelo.trim(),
-      nivel: nivelValue ? nivelValue : undefined,
+      etiqueta: form.etiqueta.trim(),
+      nivel_id: nivelIdNumber,
+      grado: gradoValue,
     });
 
     if (!result.success) {
       const newErrors: FieldErrors = {};
       for (const issue of result.error.issues) {
         const field = issue.path[0];
-        if (typeof field === 'string' && !(field in newErrors)) {
-          newErrors[field as keyof CourseFormState] = issue.message;
+        if (typeof field === 'string') {
+          const targetField =
+            field === 'nivel_id' || field === 'nombre' || field === 'etiqueta' || field === 'grado'
+              ? field
+              : null;
+          if (targetField && !newErrors[targetField as keyof FieldErrors]) {
+            newErrors[targetField as keyof FieldErrors] = issue.message;
+          }
         }
       }
       setFieldErrors(newErrors);
@@ -97,11 +137,12 @@ export default function CourseForm() {
 
   const updateField = (field: keyof CourseFormState) => (value: string) => {
     setFieldErrors((previous) => {
-      if (!previous[field]) {
+      const targetField = field === 'nivelId' ? 'nivel_id' : field;
+      if (!previous[targetField as keyof FieldErrors]) {
         return previous;
       }
       const next = { ...previous };
-      delete next[field];
+      delete next[targetField as keyof FieldErrors];
       return next;
     });
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -116,6 +157,7 @@ export default function CourseForm() {
   }
 
   const title = isEditing ? 'Editar curso' : 'Nuevo curso';
+  const levels = levelsQuery.data ?? [];
 
   return (
     <div className="bg-white rounded-2xl shadow p-4 max-w-xl">
@@ -134,28 +176,59 @@ export default function CourseForm() {
           {fieldErrors.nombre && <p className="text-sm text-red-600 mt-1">{fieldErrors.nombre}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-600" htmlFor="course-paralelo">
-            Paralelo
+          <label className="block text-sm font-medium text-gray-600" htmlFor="course-etiqueta">
+            Etiqueta
           </label>
           <input
-            id="course-paralelo"
+            id="course-etiqueta"
             className="w-full border rounded px-3 py-2"
-            value={form.paralelo}
-            onChange={(event) => updateField('paralelo')(event.target.value)}
+            value={form.etiqueta}
+            onChange={(event) => updateField('etiqueta')(event.target.value)}
           />
-          {fieldErrors.paralelo && <p className="text-sm text-red-600 mt-1">{fieldErrors.paralelo}</p>}
+          {fieldErrors.etiqueta && <p className="text-sm text-red-600 mt-1">{fieldErrors.etiqueta}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-600" htmlFor="course-nivel">
-            Nivel (opcional)
+            Nivel
           </label>
-          <input
+          <select
             id="course-nivel"
             className="w-full border rounded px-3 py-2"
-            value={form.nivel ?? ''}
-            onChange={(event) => updateField('nivel')(event.target.value)}
+            value={form.nivelId}
+            onChange={(event) => updateField('nivelId')(event.target.value)}
+            disabled={levelsQuery.isLoading}
+          >
+            <option value="">Selecciona un nivel</option>
+            {levels.map((level: Level) => {
+              const label = level.etiqueta ? `${level.nombre} (${level.etiqueta})` : level.nombre;
+              return (
+                <option key={level.id} value={level.id}>
+                  {label}
+                </option>
+              );
+            })}
+          </select>
+          {levelsQuery.isError && (
+            <p className="text-sm text-red-600 mt-1">No se pudieron cargar los niveles.</p>
+          )}
+          {levelsQuery.isSuccess && levels.length === 0 && (
+            <p className="text-sm text-gray-500 mt-1">Registra un nivel antes de crear cursos.</p>
+          )}
+          {fieldErrors.nivel_id && <p className="text-sm text-red-600 mt-1">{fieldErrors.nivel_id}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600" htmlFor="course-grado">
+            Grado (opcional)
+          </label>
+          <input
+            id="course-grado"
+            type="number"
+            className="w-full border rounded px-3 py-2"
+            value={form.grado}
+            onChange={(event) => updateField('grado')(event.target.value)}
+            min={0}
           />
-          {fieldErrors.nivel && <p className="text-sm text-red-600 mt-1">{fieldErrors.nivel}</p>}
+          {fieldErrors.grado && <p className="text-sm text-red-600 mt-1">{fieldErrors.grado}</p>}
         </div>
         {submitError && <p className="text-red-600 text-sm">{submitError}</p>}
         <div className="flex gap-2 justify-end">

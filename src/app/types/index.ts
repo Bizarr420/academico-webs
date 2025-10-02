@@ -34,6 +34,12 @@ export const VIEW_CODES = [
 export type KnownViewCode = (typeof VIEW_CODES)[number];
 export type ViewCode = KnownViewCode | (string & {});
 
+export interface RoleSummary {
+  id: number;
+  nombre: string;
+  codigo: string;
+}
+
 export interface ApiView {
   id: number;
   nombre: string;
@@ -211,18 +217,34 @@ export type TeacherPayload = PersonAssociationPayload & {
 
 export type TeacherFilters = PaginationFilters;
 
+export interface Level {
+  id: number;
+  nombre: string;
+  etiqueta: string | null;
+}
+
+export interface CourseParallel {
+  id: number;
+  nombre: string | null;
+  etiqueta: string | null;
+}
+
 export interface Course {
   id: number;
   nombre: string;
-  paralelo: string;
+  etiqueta: string | null;
+  nivel_id: number | null;
   nivel: string | null;
+  grado?: number | null;
+  paralelos?: CourseParallel[];
   materias?: Subject[];
 }
 
 export interface CoursePayload {
   nombre: string;
-  paralelo: string;
-  nivel?: string;
+  etiqueta: string;
+  nivel_id: number;
+  grado?: number | null;
 }
 
 export type CourseFilters = PaginationFilters;
@@ -230,14 +252,22 @@ export type CourseFilters = PaginationFilters;
 export interface Subject {
   id: number;
   nombre: string;
+  codigo: string;
   curso_id: number;
-  curso?: string;
-  paralelo?: string;
+  curso?: string | null;
+  paralelo?: string | null;
+  area?: string | null;
+  estado?: string | null;
+  descripcion?: string | null;
 }
 
 export interface SubjectPayload {
   nombre: string;
+  codigo: string;
   curso_id: number;
+  descripcion?: string | null;
+  area?: string | null;
+  estado?: string | null;
 }
 
 export interface SubjectFilters extends PaginationFilters {
@@ -253,6 +283,7 @@ export interface ManagedUser {
   roles: Role[];
   persona?: Person | null;
   persona_id?: number | null;
+  rol_id?: number | null;
 }
 
 export interface ApiManagedUser extends Omit<ManagedUser, 'role' | 'roles'> {
@@ -265,6 +296,7 @@ export interface UserPayload {
   persona_id: number;
   email?: string;
   password?: string;
+  rol_id: number;
 }
 
 export interface UserFilters extends PaginationFilters {

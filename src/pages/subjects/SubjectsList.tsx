@@ -8,6 +8,16 @@ import type { Course, Subject } from '@/app/types';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
+const formatCourseLabel = (course: Course) => {
+  const paralelos = course.paralelos ?? [];
+  const paralelosLabel = paralelos
+    .map((parallel) => parallel.nombre || parallel.etiqueta || '')
+    .filter((label) => label.trim().length > 0);
+  const paraleloDisplay = paralelosLabel.length > 0 ? paralelosLabel.join(', ') : course.etiqueta ?? '';
+  const parts = [course.nombre, paraleloDisplay].filter((part) => part && part.trim().length > 0);
+  return parts.length > 0 ? parts.join(' - ') : course.nombre;
+};
+
 export default function SubjectsList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -100,7 +110,7 @@ export default function SubjectsList() {
             <option value="">Todos</option>
             {coursesQuery.data?.map((course: Course) => (
               <option key={course.id} value={course.id}>
-                {course.nombre} - {course.paralelo}
+                {formatCourseLabel(course)}
               </option>
             ))}
           </select>
@@ -121,6 +131,7 @@ export default function SubjectsList() {
             <thead>
               <tr className="text-left border-b">
                 <th className="py-2">Materia</th>
+                <th>Código</th>
                 <th>Curso</th>
                 <th>Paralelo</th>
                 <th>Acciones</th>
@@ -130,6 +141,7 @@ export default function SubjectsList() {
               {subjects.map((subject) => (
                 <tr key={subject.id} className="border-b last:border-0">
                   <td className="py-2">{subject.nombre}</td>
+                  <td>{subject.codigo || '-'}</td>
                   <td>{subject.curso || '-'}</td>
                   <td>{subject.paralelo || '-'}</td>
                   <td>

@@ -6,22 +6,36 @@ import { z } from 'zod';
 
 import { getAllCourses } from '@/app/services/courses';
 import { createSubject, getSubject, updateSubject } from '@/app/services/subjects';
-import type { SubjectPayload } from '@/app/types';
+import type { Course, SubjectPayload } from '@/app/types';
 
 const subjectSchema = z.object({
   nombre: z.string().min(2, 'Ingresa el nombre de la materia'),
+  codigo: z.string().min(2, 'Ingresa el código de la materia'),
   curso_id: z.number().int().positive('Selecciona un curso'),
 });
 
+const formatCourseLabel = (course: Course) => {
+  const paralelos = course.paralelos ?? [];
+  const paralelosLabel = paralelos
+    .map((parallel) => parallel.nombre || parallel.etiqueta || '')
+    .filter((label) => label.trim().length > 0);
+  const paraleloDisplay = paralelosLabel.length > 0 ? paralelosLabel.join(', ') : course.etiqueta ?? '';
+  const parts = [course.nombre, paraleloDisplay].filter((part) => part && part.trim().length > 0);
+  const baseLabel = parts.length > 0 ? parts.join(' - ') : course.nombre;
+  return course.nivel ? `${baseLabel} • ${course.nivel}` : baseLabel;
+};
+
 type SubjectFormState = {
   nombre: string;
+  codigo: string;
   curso_id: string;
 };
 
-type FieldErrors = Partial<Record<keyof SubjectFormState, string>>;
+type FieldErrors = Partial<Record<'nombre' | 'codigo' | 'curso_id', string>>;
 
 const initialValues: SubjectFormState = {
   nombre: '',
+  codigo: '',
   curso_id: '',
 };
 
@@ -49,6 +63,7 @@ export default function SubjectForm() {
     if (subjectQuery.data) {
       setForm({
         nombre: subjectQuery.data.nombre,
+        codigo: subjectQuery.data.codigo ?? '',
         curso_id: subjectQuery.data.curso_id.toString(),
       });
     }
@@ -86,6 +101,7 @@ export default function SubjectForm() {
 
     const result = subjectSchema.safeParse({
       nombre: form.nombre.trim(),
+      codigo: form.codigo.trim(),
       curso_id: parsedCourseId,
     });
 
@@ -145,6 +161,18 @@ export default function SubjectForm() {
           {fieldErrors.nombre && <p className="text-sm text-red-600 mt-1">{fieldErrors.nombre}</p>}
         </div>
         <div>
+          <label className="block text-sm font-medium text-gray-600" htmlFor="subject-codigo">
+            Código
+          </label>
+          <input
+            id="subject-codigo"
+            className="w-full border rounded px-3 py-2"
+            value={form.codigo}
+            onChange={(event) => updateField('codigo')(event.target.value)}
+          />
+          {fieldErrors.codigo && <p className="text-sm text-red-600 mt-1">{fieldErrors.codigo}</p>}
+        </div>
+        <div>
           <label className="block text-sm font-medium text-gray-600" htmlFor="subject-curso">
             Curso
           </label>
@@ -157,7 +185,7 @@ export default function SubjectForm() {
             <option value="">Selecciona un curso</option>
             {courses.map((course) => (
               <option key={course.id} value={course.id}>
-                {course.nombre} - {course.paralelo}
+                {formatCourseLabel(course)}
               </option>
             ))}
           </select>

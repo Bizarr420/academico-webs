@@ -87,8 +87,9 @@ export default function CoursesList() {
             <thead>
               <tr className="text-left border-b">
                 <th className="py-2">Curso</th>
-                <th>Paralelo</th>
+                <th>Etiqueta / paralelos</th>
                 <th>Nivel</th>
+                <th>Grado</th>
                 <th>Materias</th>
                 <th>Acciones</th>
               </tr>
@@ -98,11 +99,20 @@ export default function CoursesList() {
                 const materias = course.materias ?? [];
                 const materiasLabel =
                   materias.length > 0 ? materias.map((subject) => subject.nombre).join(', ') : '-';
+                const paralelos = course.paralelos ?? [];
+                const paralelosLabel = paralelos
+                  .map((parallel) => parallel.nombre || parallel.etiqueta || '')
+                  .filter((label) => label.trim().length > 0);
+                const paraleloDisplay =
+                  paralelosLabel.length > 0
+                    ? paralelosLabel.join(', ')
+                    : course.etiqueta || '-';
                 return (
                   <tr key={course.id} className="border-b last:border-0">
                     <td className="py-2">{course.nombre}</td>
-                    <td>{course.paralelo}</td>
+                    <td>{paraleloDisplay}</td>
                     <td>{course.nivel || '-'}</td>
+                    <td>{course.grado ?? '-'}</td>
                     <td className="max-w-xs truncate" title={materiasLabel}>
                       {materias.length > 0 ? `${materias.length} materias` : '-'}
                     </td>
