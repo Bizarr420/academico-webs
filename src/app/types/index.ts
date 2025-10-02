@@ -103,6 +103,18 @@ export interface PaginationFilters {
   page_size?: number;
 }
 
+export interface SoftDeleteMetadata {
+  estado?: string | null;
+  activo?: boolean | null;
+  eliminado_en?: string | null;
+}
+
+export interface ActivableFilters {
+  estado?: string;
+  incluir_inactivos?: boolean;
+  activo?: boolean;
+}
+
 export const STUDENT_SITUATIONS = ['REGULAR', 'RETIRADO', 'EGRESADO', 'CONDICIONAL'] as const;
 export type StudentSituation = (typeof STUDENT_SITUATIONS)[number];
 
@@ -121,7 +133,7 @@ export const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
   INACTIVO: 'Inactivo',
 };
 
-export interface Student {
+export interface Student extends SoftDeleteMetadata {
   id: number;
   persona_id: number;
   codigo_rude: string;
@@ -148,7 +160,7 @@ export type StudentPayload = PersonAssociationPayload & {
   estado?: StudentStatus | null;
 };
 
-export interface StudentFilters extends PaginationFilters {
+export interface StudentFilters extends PaginationFilters, ActivableFilters {
   codigo_rude?: string;
 }
 
@@ -160,7 +172,7 @@ export const SEX_LABELS: Record<Sexo, string> = {
   X: 'Otro',
 };
 
-export interface ApiPerson {
+export interface ApiPerson extends SoftDeleteMetadata {
   id: number;
   nombres: string;
   apellidos: string;
@@ -174,7 +186,7 @@ export interface ApiPerson {
   correo?: string | null;
 }
 
-export interface Person {
+export interface Person extends SoftDeleteMetadata {
   id: number;
   nombres: string;
   apellidos: string;
@@ -200,9 +212,9 @@ export interface PersonPayload {
   ci_expedicion?: string;
 }
 
-export type PersonFilters = PaginationFilters;
+export type PersonFilters = PaginationFilters & ActivableFilters;
 
-export interface Teacher {
+export interface Teacher extends SoftDeleteMetadata {
   id: number;
   persona_id: number;
   titulo: string | null;
@@ -215,7 +227,7 @@ export type TeacherPayload = PersonAssociationPayload & {
   profesion?: string | null;
 };
 
-export type TeacherFilters = PaginationFilters;
+export type TeacherFilters = PaginationFilters & ActivableFilters;
 
 export interface Level {
   id: number;
@@ -229,7 +241,7 @@ export interface CourseParallel {
   etiqueta: string | null;
 }
 
-export interface Course {
+export interface Course extends SoftDeleteMetadata {
   id: number;
   nombre: string;
   etiqueta: string | null;
@@ -247,9 +259,9 @@ export interface CoursePayload {
   grado?: number | null;
 }
 
-export type CourseFilters = PaginationFilters;
+export type CourseFilters = PaginationFilters & ActivableFilters;
 
-export interface Subject {
+export interface Subject extends SoftDeleteMetadata {
   id: number;
   nombre: string;
   codigo: string;
@@ -270,11 +282,11 @@ export interface SubjectPayload {
   estado?: string | null;
 }
 
-export interface SubjectFilters extends PaginationFilters {
+export interface SubjectFilters extends PaginationFilters, ActivableFilters {
   curso_id?: number;
 }
 
-export interface ManagedUser {
+export interface ManagedUser extends SoftDeleteMetadata {
   id: number;
   username: string;
   name?: string | null;
@@ -299,7 +311,7 @@ export interface UserPayload {
   rol_id: number;
 }
 
-export interface UserFilters extends PaginationFilters {
+export interface UserFilters extends PaginationFilters, ActivableFilters {
   role?: Role | null;
 }
 

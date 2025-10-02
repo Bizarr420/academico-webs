@@ -7,7 +7,15 @@ export const STUDENTS_PAGE_SIZE = 10;
 const STUDENTS_ENDPOINT = '/estudiantes';
 
 export async function getStudents(filters: StudentFilters): Promise<Paginated<Student>> {
-  const { page, search, codigo_rude, page_size = STUDENTS_PAGE_SIZE } = filters;
+  const {
+    page,
+    search,
+    codigo_rude,
+    page_size = STUDENTS_PAGE_SIZE,
+    estado,
+    incluir_inactivos,
+    activo,
+  } = filters;
   const params: Record<string, unknown> = {
     page,
     page_size,
@@ -17,6 +25,18 @@ export async function getStudents(filters: StudentFilters): Promise<Paginated<St
     params.codigo_rude = codigo_rude.trim();
   } else if (typeof search === 'string' && search.trim().length > 0) {
     params.search = search.trim();
+  }
+
+  if (typeof estado === 'string' && estado.trim().length > 0) {
+    params.estado = estado.trim();
+  }
+
+  if (typeof activo === 'boolean') {
+    params.activo = activo ? 1 : 0;
+  }
+
+  if (incluir_inactivos) {
+    params.incluir_inactivos = 1;
   }
 
   const { data } = await api.get<PaginatedResponse<Student>>(withTrailingSlash(STUDENTS_ENDPOINT), withAuth({ params }));
@@ -40,4 +60,13 @@ export async function updateStudent(id: number, payload: StudentPayload) {
 
 export async function deleteStudent(id: number) {
   await api.delete(`${withTrailingSlash(STUDENTS_ENDPOINT)}${id}`, withAuth());
+}
+
+export async function restoreStudent(id: number) {
+  const { data } = await api.post<Student>(
+    `${withTrailingSlash(STUDENTS_ENDPOINT)}${id}/restore`,
+    undefined,
+    withAuth(),
+  );
+  return data;
 }

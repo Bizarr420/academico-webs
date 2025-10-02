@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { isAxiosError } from 'axios';
 
-import { createStudent, getStudent, updateStudent } from '@/app/services/students';
+import { createStudent, getStudent, restoreStudent, updateStudent } from '@/app/services/students';
 import {
   SEX_CODES,
   SEX_LABELS,
@@ -24,6 +24,8 @@ import type {
   Sexo,
 } from '@/app/types';
 import StudentSummary from '@/pages/students/components/StudentSummary';
+import { extractInactiveResourceId } from '@/app/utils/api-errors';
+import { resolveStatus } from '@/app/utils/status';
 
 type PersonMode = 'existing' | 'new';
 
@@ -195,6 +197,9 @@ export default function StudentForm() {
   const [form, setForm] = useState<StudentFormState>(() => createInitialFormState());
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
+  const [restoreSuggestion, setRestoreSuggestion] = useState<{ id: number | null; message: string } | null>(null);
+  const [loadedStudent, setLoadedStudent] = useState<Student | null>(null);
 
   const studentQuery = useQuery({
     queryKey: ['student', studentId],
@@ -202,35 +207,66 @@ export default function StudentForm() {
     enabled: isEditing,
   });
 
+  const syncFormWithStudent = (student: Student) => {
+    const persona = student.persona;
+    const fechaNacimiento = persona?.fecha_nacimiento ?? '';
+    setForm({
+      personMode: 'existing',
+      persona_id: String(student.persona_id ?? ''),
+      codigo_rude: student.codigo_rude ?? '',
+      anio_ingreso: student.anio_ingreso ? String(student.anio_ingreso) : '',
+      situacion: student.situacion ?? '',
+      estado: student.estado ?? '',
+      persona: {
+        nombres: persona?.nombres ?? '',
+        apellidos: persona?.apellidos ?? '',
+        sexo: persona?.sexo ?? '',
+        fecha_nacimiento: fechaNacimiento ? fechaNacimiento.slice(0, 10) : '',
+        celular: persona?.celular ?? '',
+        direccion: persona?.direccion ?? '',
+        ci_numero: persona?.ci_numero ?? '',
+        ci_complemento: persona?.ci_complemento ?? '',
+        ci_expedicion: persona?.ci_expedicion ?? '',
+      },
+    });
+    setLoadedStudent(student);
+  };
+
   useEffect(() => {
     if (studentQuery.data) {
-      const persona = studentQuery.data.persona;
-      const fechaNacimiento = persona?.fecha_nacimiento ?? '';
-      setForm({
-        personMode: 'existing',
-        persona_id: String(studentQuery.data.persona_id ?? ''),
-        codigo_rude: studentQuery.data.codigo_rude ?? '',
-        anio_ingreso: studentQuery.data.anio_ingreso
-          ? String(studentQuery.data.anio_ingreso)
-          : '',
-        situacion: studentQuery.data.situacion ?? '',
-        estado: studentQuery.data.estado ?? '',
-        persona: {
-          nombres: persona?.nombres ?? '',
-          apellidos: persona?.apellidos ?? '',
-          sexo: persona?.sexo ?? '',
-          fecha_nacimiento: fechaNacimiento ? fechaNacimiento.slice(0, 10) : '',
-          celular: persona?.celular ?? '',
-          direccion: persona?.direccion ?? '',
-          ci_numero: persona?.ci_numero ?? '',
-          ci_complemento: persona?.ci_complemento ?? '',
-          ci_expedicion: persona?.ci_expedicion ?? '',
-        },
-      });
+      syncFormWithStudent(studentQuery.data);
     } else if (!isEditing) {
       setForm(createInitialFormState());
+      setLoadedStudent(null);
     }
   }, [isEditing, studentQuery.data]);
+
+  const currentStudent = studentQuery.data ?? loadedStudent;
+  const studentStatus = currentStudent
+    ? resolveStatus({ estado: currentStudent.estado ?? undefined, activo: currentStudent.activo })
+    : null;
+  const isInactive = studentStatus?.isActive === false;
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: number) => restoreStudent(id),
+    onSuccess: (student) => {
+      updateStudentCollections(queryClient, student);
+      syncFormWithStudent(student);
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      if (studentId) {
+        queryClient.setQueryData(['student', studentId], student);
+        setInfoMessage('Registro restaurado y activo.');
+        setSubmitError('');
+        setRestoreSuggestion(null);
+      } else {
+        navigate(`/estudiantes/${student.id}/editar`);
+      }
+    },
+    onError: () => {
+      setSubmitError('No se pudo restaurar el registro.');
+      setInfoMessage('');
+    },
+  });
 
   const mutation = useMutation({
     mutationFn: async (payload: StudentPayload) =>
@@ -241,12 +277,25 @@ export default function StudentForm() {
         queryClient.setQueryData(['student', studentId], student);
       }
       queryClient.setQueryData(['student', String(student.id)], student);
+      setInfoMessage('');
+      setRestoreSuggestion(null);
       navigate('/estudiantes');
     },
     onError: (error: unknown) => {
       if (isAxiosError(error) && error.response) {
         const detail = extractErrorDetail(error.response.data);
         const normalizedDetail = detail.toLowerCase();
+
+        if (error.response.status === 409) {
+          const suggestedId = extractInactiveResourceId(error.response.data);
+          setRestoreSuggestion({
+            id: suggestedId,
+            message: 'Existe un registro inactivo con ese código. ¿Deseas restaurarlo?',
+          });
+          setSubmitError('Existe un registro inactivo con ese código. ¿Deseas restaurarlo?');
+          setInfoMessage('');
+          return;
+        }
 
         if (error.response.status === 404 && normalizedDetail.includes('persona')) {
           setFieldErrors((previous) => ({ ...previous, persona_id: 'La persona indicada no existe.' }));
@@ -289,10 +338,12 @@ export default function StudentForm() {
         }
 
         setSubmitError(detail || 'No se pudo guardar.');
+        setInfoMessage('');
         return;
       }
 
       setSubmitError('No se pudo guardar.');
+      setInfoMessage('');
     },
   });
 
@@ -327,6 +378,13 @@ export default function StudentForm() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError('');
+    setInfoMessage('');
+    setRestoreSuggestion(null);
+
+    if (isEditing && isInactive) {
+      setSubmitError('Este registro está inactivo. Restaura el registro para poder editarlo.');
+      return;
+    }
 
     const trimmedCodigo = form.codigo_rude.trim();
     const trimmedAnioIngreso = form.anio_ingreso.trim();
@@ -531,6 +589,25 @@ export default function StudentForm() {
     }));
   };
 
+  const handleRestoreCurrent = () => {
+    const id = currentStudent?.id ?? (studentId ? Number(studentId) : null);
+    if (!id) {
+      return;
+    }
+    setSubmitError('');
+    setInfoMessage('');
+    restoreMutation.mutate(id);
+  };
+
+  const handleRestoreSuggestion = () => {
+    if (!restoreSuggestion || !restoreSuggestion.id) {
+      return;
+    }
+    setSubmitError('');
+    setInfoMessage('');
+    restoreMutation.mutate(restoreSuggestion.id);
+  };
+
   if (isEditing && studentQuery.isLoading) {
     return <p>Cargando estudiante…</p>;
   }
@@ -544,6 +621,33 @@ export default function StudentForm() {
   return (
     <div className="bg-white rounded-2xl shadow p-4 max-w-3xl">
       <h1 className="text-lg font-semibold mb-4">{title}</h1>
+      {isEditing && isInactive && (
+        <div className="mb-4 flex flex-col gap-2 rounded border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 sm:flex-row sm:items-center sm:justify-between">
+          <span>Este registro está inactivo. ¿Deseas restaurarlo?</span>
+          <button
+            type="button"
+            className="rounded bg-yellow-600 px-3 py-2 text-white disabled:opacity-50"
+            onClick={handleRestoreCurrent}
+            disabled={restoreMutation.isPending}
+          >
+            {restoreMutation.isPending ? 'Restaurando…' : 'Restaurar'}
+          </button>
+        </div>
+      )}
+      {restoreSuggestion && (
+        <div className="mb-4 flex flex-col gap-2 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 sm:flex-row sm:items-center sm:justify-between">
+          <span>{restoreSuggestion.message}</span>
+          <button
+            type="button"
+            className="rounded bg-blue-600 px-3 py-2 text-white disabled:opacity-50"
+            onClick={handleRestoreSuggestion}
+            disabled={!restoreSuggestion.id || restoreMutation.isPending}
+            title={restoreSuggestion.id ? undefined : 'ID de registro no disponible'}
+          >
+            {restoreMutation.isPending ? 'Restaurando…' : 'Restaurar registro existente'}
+          </button>
+        </div>
+      )}
       {isEditing && studentQuery.data && (
         <div className="mb-4">
           <StudentSummary student={studentQuery.data} />
@@ -793,33 +897,40 @@ export default function StudentForm() {
             </select>
             {fieldErrors.situacion && <p className="text-sm text-red-600 mt-1">{fieldErrors.situacion}</p>}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600" htmlFor="student-estado">
-              Estado académico
-            </label>
-            <select
-              id="student-estado"
-              className="w-full border rounded px-3 py-2"
-              value={form.estado}
-              onChange={(event) => updateSelectField('estado')(event.target.value)}
-            >
-              <option value="">Por defecto (API)</option>
-              {STUDENT_STATES.map((option) => (
-                <option key={option} value={option}>
-              {STUDENT_STATUS_LABELS[option]}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.estado && <p className="text-sm text-red-600 mt-1">{fieldErrors.estado}</p>}
-          </div>
+          {isEditing && (
+            <div>
+              <label className="block text-sm font-medium text-gray-600" htmlFor="student-estado">
+                Estado académico
+              </label>
+              <select
+                id="student-estado"
+                className="w-full border rounded px-3 py-2"
+                value={form.estado}
+                onChange={(event) => updateSelectField('estado')(event.target.value)}
+              >
+                <option value="">Por defecto (API)</option>
+                {STUDENT_STATES.map((option) => (
+                  <option key={option} value={option}>
+                    {STUDENT_STATUS_LABELS[option]}
+                  </option>
+                ))}
+              </select>
+              {fieldErrors.estado && <p className="text-sm text-red-600 mt-1">{fieldErrors.estado}</p>}
+            </div>
+          )}
         </div>
 
+        {infoMessage && <p className="text-green-600 text-sm">{infoMessage}</p>}
         {submitError && <p className="text-red-600 text-sm">{submitError}</p>}
         <div className="flex gap-2 justify-end">
           <button type="button" className="px-3 py-2 border rounded" onClick={() => navigate(-1)}>
             Cancelar
           </button>
-          <button className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50" disabled={mutation.isPending}>
+          <button
+            className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50"
+            disabled={mutation.isPending || (isEditing && isInactive)}
+            title={isEditing && isInactive ? 'Restaura el registro para habilitar la edición.' : undefined}
+          >
             {mutation.isPending ? 'Guardando…' : 'Guardar'}
           </button>
         </div>

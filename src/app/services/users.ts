@@ -49,7 +49,15 @@ const mapUser = (user: ApiManagedUser): ManagedUser => {
 };
 
 export async function getUsers(filters: UserFilters): Promise<Paginated<ManagedUser>> {
-  const { page, search, page_size = USERS_PAGE_SIZE, role } = filters;
+  const {
+    page,
+    search,
+    page_size = USERS_PAGE_SIZE,
+    role,
+    estado,
+    incluir_inactivos,
+    activo,
+  } = filters;
   const params: Record<string, unknown> = {
     page,
     page_size,
@@ -61,6 +69,18 @@ export async function getUsers(filters: UserFilters): Promise<Paginated<ManagedU
 
   if (typeof role === 'string' && role.trim().length > 0) {
     params.role = role;
+  }
+
+  if (typeof estado === 'string' && estado.trim().length > 0) {
+    params.estado = estado.trim();
+  }
+
+  if (typeof activo === 'boolean') {
+    params.activo = activo ? 1 : 0;
+  }
+
+  if (incluir_inactivos) {
+    params.incluir_inactivos = 1;
   }
 
   const { data } = await api.get<PaginatedResponse<ApiManagedUser>>(withTrailingSlash(USERS_ENDPOINT), {
@@ -104,4 +124,12 @@ export async function updateUser(id: number, payload: UserPayload) {
 
 export async function deleteUser(id: number) {
   await api.delete(`${USERS_ENDPOINT}/${id}`);
+}
+
+export async function restoreUser(id: number) {
+  const { data } = await api.post<ApiManagedUser>(
+    `${withTrailingSlash(USERS_ENDPOINT)}${id}/restore`,
+    undefined,
+  );
+  return mapUser(data);
 }
