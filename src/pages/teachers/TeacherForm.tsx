@@ -17,8 +17,6 @@ const textFieldSchema = z
   .max(120, 'Máximo 120 caracteres')
   .optional();
 
-type PersonMode = 'existing' | 'new';
-
 type PersonFormState = {
   nombres: string;
   apellidos: string;
@@ -32,8 +30,6 @@ type PersonFormState = {
 };
 
 type TeacherFormState = {
-  personMode: PersonMode;
-  persona_id: string;
   titulo: string;
   profesion: string;
   persona: PersonFormState;
@@ -42,7 +38,6 @@ type TeacherFormState = {
 type PersonFieldErrors = Partial<Record<keyof PersonFormState, string>>;
 
 type FieldErrors = {
-  persona_id?: string;
   titulo?: string;
   profesion?: string;
   persona?: PersonFieldErrors;
@@ -65,26 +60,11 @@ const personSchema = z.object({
   ci_expedicion: z.string().max(5, 'Máximo 5 caracteres').optional(),
 });
 
-const teacherSchema = z.discriminatedUnion('personMode', [
-  z.object({
-    personMode: z.literal('existing'),
-    persona_id: z.coerce
-      .number()
-      .refine((value) => Number.isFinite(value), {
-        message: 'Ingresa un ID de persona válido.',
-      })
-      .int('El ID de la persona debe ser un número entero.')
-      .positive('El ID de la persona debe ser mayor a 0.'),
-    titulo: textFieldSchema,
-    profesion: textFieldSchema,
-  }),
-  z.object({
-    personMode: z.literal('new'),
-    persona: personSchema,
-    titulo: textFieldSchema,
-    profesion: textFieldSchema,
-  }),
-]);
+const teacherSchema = z.object({
+  persona: personSchema,
+  titulo: textFieldSchema,
+  profesion: textFieldSchema,
+});
 
 const createEmptyPerson = (): PersonFormState => ({
   nombres: '',
@@ -99,8 +79,6 @@ const createEmptyPerson = (): PersonFormState => ({
 });
 
 const createInitialFormState = (): TeacherFormState => ({
-  personMode: 'existing',
-  persona_id: '',
   titulo: '',
   profesion: '',
   persona: createEmptyPerson(),
@@ -191,8 +169,6 @@ export default function TeacherForm() {
     const persona = teacher.persona;
     const fechaNacimiento = persona?.fecha_nacimiento ?? '';
     setForm({
-      personMode: 'existing',
-      persona_id: String(teacher.persona_id ?? ''),
       titulo: teacher.titulo ?? '',
       profesion: teacher.profesion ?? '',
       persona: {
@@ -280,32 +256,14 @@ export default function TeacherForm() {
         const detail = extractErrorDetail(error.response.data);
         const normalizedDetail = detail.toLowerCase();
 
-        if (error.response.status === 404 && normalizedDetail.includes('persona')) {
-          setFieldErrors((previous) => ({ ...previous, persona_id: 'La persona indicada no existe.' }));
-          setSubmitError('');
-          return;
-        }
-
         if (error.response.status === 400) {
           if (normalizedDetail.includes('docente') && normalizedDetail.includes('registrad')) {
-            setFieldErrors((previous) => ({
-              ...previous,
-              persona_id: 'Ya existe un docente asignado a esta persona.',
-            }));
-            setSubmitError('');
+            setSubmitError('Ya existe un docente asignado a esta persona.');
             return;
           }
 
           if (normalizedDetail.includes('persona') && normalizedDetail.includes('registrad')) {
-            if (form.personMode === 'existing') {
-              setFieldErrors((previous) => ({
-                ...previous,
-                persona_id: 'Ya existe un docente asignado a esta persona.',
-              }));
-              setSubmitError('');
-            } else {
-              setSubmitError('La persona ingresada ya está registrada como docente.');
-            }
+            setSubmitError('La persona ingresada ya está registrada como docente.');
             return;
           }
 
@@ -370,20 +328,11 @@ export default function TeacherForm() {
       ci_expedicion: form.persona.ci_expedicion.trim() || undefined,
     };
 
-    const payloadInput =
-      form.personMode === 'existing'
-        ? {
-            personMode: 'existing' as const,
-            persona_id: form.persona_id.trim(),
-            titulo: form.titulo,
-            profesion: form.profesion,
-          }
-        : {
-            personMode: 'new' as const,
-            persona: personaInput,
-            titulo: form.titulo,
-            profesion: form.profesion,
-          };
+    const payloadInput = {
+      persona: personaInput,
+      titulo: form.titulo,
+      profesion: form.profesion,
+    };
 
     const result = teacherSchema.safeParse(payloadInput);
 
@@ -411,41 +360,33 @@ export default function TeacherForm() {
     const tituloValue = result.data.titulo?.trim?.() ?? '';
     const profesionValue = result.data.profesion?.trim?.() ?? '';
 
-    let payload: TeacherPayload;
+    const personaPayload: PersonPayload = {
+      nombres: result.data.persona.nombres,
+      apellidos: result.data.persona.apellidos,
+      sexo: result.data.persona.sexo,
+      fecha_nacimiento: result.data.persona.fecha_nacimiento,
+      celular: result.data.persona.celular,
+    };
 
-    if (result.data.personMode === 'existing') {
-      payload = {
-        persona_id: result.data.persona_id,
-      };
-    } else {
-      const personaPayload: PersonPayload = {
-        nombres: result.data.persona.nombres,
-        apellidos: result.data.persona.apellidos,
-        sexo: result.data.persona.sexo,
-        fecha_nacimiento: result.data.persona.fecha_nacimiento,
-        celular: result.data.persona.celular,
-      };
-
-      if (result.data.persona.direccion) {
-        personaPayload.direccion = result.data.persona.direccion;
-      }
-
-      if (result.data.persona.ci_numero) {
-        personaPayload.ci_numero = result.data.persona.ci_numero;
-      }
-
-      if (result.data.persona.ci_complemento) {
-        personaPayload.ci_complemento = result.data.persona.ci_complemento;
-      }
-
-      if (result.data.persona.ci_expedicion) {
-        personaPayload.ci_expedicion = result.data.persona.ci_expedicion;
-      }
-
-      payload = {
-        persona: personaPayload,
-      };
+    if (result.data.persona.direccion) {
+      personaPayload.direccion = result.data.persona.direccion;
     }
+
+    if (result.data.persona.ci_numero) {
+      personaPayload.ci_numero = result.data.persona.ci_numero;
+    }
+
+    if (result.data.persona.ci_complemento) {
+      personaPayload.ci_complemento = result.data.persona.ci_complemento;
+    }
+
+    if (result.data.persona.ci_expedicion) {
+      personaPayload.ci_expedicion = result.data.persona.ci_expedicion;
+    }
+
+    let payload: TeacherPayload = {
+      persona: personaPayload,
+    };
 
     if (tituloValue.length > 0) {
       payload.titulo = tituloValue;
@@ -464,16 +405,32 @@ export default function TeacherForm() {
     if (isEditing && originalTeacher) {
       const filtered: Partial<TeacherPayload> = { ...payload };
 
-      if ('persona_id' in filtered && filtered.persona_id === originalTeacher.persona_id) {
-        delete filtered.persona_id;
-      }
-
       if ('titulo' in filtered && (filtered.titulo ?? null) === (originalTeacher.titulo ?? null)) {
         delete filtered.titulo;
       }
 
       if ('profesion' in filtered && (filtered.profesion ?? null) === (originalTeacher.profesion ?? null)) {
         delete filtered.profesion;
+      }
+
+      const originalPersona = originalTeacher.persona;
+      if ('persona' in filtered && filtered.persona) {
+        const personaToCompare = filtered.persona;
+        const hasPersonaChanges =
+          !originalPersona ||
+          personaToCompare.nombres !== (originalPersona.nombres ?? '') ||
+          personaToCompare.apellidos !== (originalPersona.apellidos ?? '') ||
+          personaToCompare.sexo !== (originalPersona.sexo ?? '') ||
+          personaToCompare.fecha_nacimiento !== (originalPersona.fecha_nacimiento ?? '') ||
+          personaToCompare.celular !== (originalPersona.celular ?? '') ||
+          (personaToCompare.direccion ?? '') !== (originalPersona.direccion ?? '') ||
+          (personaToCompare.ci_numero ?? '') !== (originalPersona.ci_numero ?? '') ||
+          (personaToCompare.ci_complemento ?? '') !== (originalPersona.ci_complemento ?? '') ||
+          (personaToCompare.ci_expedicion ?? '') !== (originalPersona.ci_expedicion ?? '');
+
+        if (!hasPersonaChanges) {
+          delete filtered.persona;
+        }
       }
 
       if (Object.keys(filtered).length === 0) {
@@ -488,7 +445,7 @@ export default function TeacherForm() {
     mutation.mutate(payloadToSend);
   };
 
-  const updateTopLevelField = (field: 'persona_id' | 'titulo' | 'profesion') => (value: string) => {
+  const updateTopLevelField = (field: 'titulo' | 'profesion') => (value: string) => {
     setSubmitError('');
     setFieldErrors((previous) => {
       if (!previous[field]) {
@@ -510,38 +467,6 @@ export default function TeacherForm() {
         ...previous.persona,
         [field]: value,
       },
-    }));
-  };
-
-  const handlePersonModeChange = (mode: PersonMode) => {
-    setSubmitError('');
-    setFieldErrors((previous) => {
-      if (mode === 'existing') {
-        if (!previous.persona) {
-          return previous;
-        }
-        const next = { ...previous };
-        delete next.persona;
-        return next;
-      }
-
-      if (!previous.persona_id) {
-        return previous;
-      }
-
-      const next = { ...previous };
-      delete next.persona_id;
-      return next;
-    });
-
-    setForm((previous) => ({
-      ...previous,
-      personMode: mode,
-      persona_id: mode === 'existing' ? previous.persona_id : '',
-      persona:
-        mode === 'new' && previous.personMode === 'existing'
-          ? createEmptyPerson()
-          : previous.persona,
     }));
   };
 
@@ -605,62 +530,21 @@ export default function TeacherForm() {
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <span className="block text-sm font-medium text-gray-600">Persona asociada</span>
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="radio"
-                name="teacher-person-mode"
-                value="existing"
-                checked={form.personMode === 'existing'}
-                onChange={() => handlePersonModeChange('existing')}
-              />
-              Vincular persona existente
-            </label>
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="radio"
-                name="teacher-person-mode"
-                value="new"
-                checked={form.personMode === 'new'}
-                onChange={() => handlePersonModeChange('new')}
-              />
-              Registrar nueva persona
-            </label>
-          </div>
-        </div>
-
-        {form.personMode === 'existing' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-persona-id">
-              ID de la persona
-            </label>
-            <input
-              id="teacher-persona-id"
-              className="w-full border rounded px-3 py-2"
-              value={form.persona_id}
-              onChange={(event) => updateTopLevelField('persona_id')(event.target.value)}
-              inputMode="numeric"
-            />
-            {fieldErrors.persona_id && <p className="text-sm text-red-600 mt-1">{fieldErrors.persona_id}</p>}
-          </div>
-        )}
-
-        {form.personMode === 'new' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <span className="block text-sm font-medium text-gray-600">Datos de la persona</span>
+          <div className="mt-3 space-y-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-nombres">
                   Nombres
                 </label>
                 <input
                   id="teacher-person-nombres"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full rounded border px-3 py-2"
                   value={form.persona.nombres}
                   onChange={(event) => updatePersonaField('nombres')(event.target.value)}
                 />
                 {fieldErrors.persona?.nombres && (
-                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.nombres}</p>
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.nombres}</p>
                 )}
               </div>
               <div>
@@ -669,23 +553,23 @@ export default function TeacherForm() {
                 </label>
                 <input
                   id="teacher-person-apellidos"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full rounded border px-3 py-2"
                   value={form.persona.apellidos}
                   onChange={(event) => updatePersonaField('apellidos')(event.target.value)}
                 />
                 {fieldErrors.persona?.apellidos && (
-                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.apellidos}</p>
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.apellidos}</p>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-sexo">
                   Sexo
                 </label>
                 <select
                   id="teacher-person-sexo"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full rounded border px-3 py-2"
                   value={form.persona.sexo}
                   onChange={(event) => updatePersonaField('sexo')(event.target.value as PersonFormState['sexo'])}
                 >
@@ -697,7 +581,7 @@ export default function TeacherForm() {
                   ))}
                 </select>
                 {fieldErrors.persona?.sexo && (
-                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.sexo}</p>
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.sexo}</p>
                 )}
               </div>
               <div>
@@ -707,28 +591,28 @@ export default function TeacherForm() {
                 <input
                   type="date"
                   id="teacher-person-fecha-nacimiento"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full rounded border px-3 py-2"
                   value={form.persona.fecha_nacimiento}
                   onChange={(event) => updatePersonaField('fecha_nacimiento')(event.target.value)}
                 />
                 {fieldErrors.persona?.fecha_nacimiento && (
-                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.fecha_nacimiento}</p>
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.fecha_nacimiento}</p>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-celular">
                   Celular
                 </label>
                 <input
                   id="teacher-person-celular"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full rounded border px-3 py-2"
                   value={form.persona.celular}
                   onChange={(event) => updatePersonaField('celular')(event.target.value)}
                 />
                 {fieldErrors.persona?.celular && (
-                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.celular}</p>
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.celular}</p>
                 )}
               </div>
               <div>
@@ -737,28 +621,28 @@ export default function TeacherForm() {
                 </label>
                 <input
                   id="teacher-person-direccion"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full rounded border px-3 py-2"
                   value={form.persona.direccion}
                   onChange={(event) => updatePersonaField('direccion')(event.target.value)}
                 />
                 {fieldErrors.persona?.direccion && (
-                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.direccion}</p>
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.direccion}</p>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-person-ci-numero">
                   N° de CI (opcional)
                 </label>
                 <input
                   id="teacher-person-ci-numero"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full rounded border px-3 py-2"
                   value={form.persona.ci_numero}
                   onChange={(event) => updatePersonaField('ci_numero')(event.target.value)}
                 />
                 {fieldErrors.persona?.ci_numero && (
-                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.ci_numero}</p>
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.ci_numero}</p>
                 )}
               </div>
               <div>
@@ -767,12 +651,12 @@ export default function TeacherForm() {
                 </label>
                 <input
                   id="teacher-person-ci-complemento"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full rounded border px-3 py-2"
                   value={form.persona.ci_complemento}
                   onChange={(event) => updatePersonaField('ci_complemento')(event.target.value)}
                 />
                 {fieldErrors.persona?.ci_complemento && (
-                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.ci_complemento}</p>
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.ci_complemento}</p>
                 )}
               </div>
               <div>
@@ -781,17 +665,17 @@ export default function TeacherForm() {
                 </label>
                 <input
                   id="teacher-person-ci-expedicion"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full rounded border px-3 py-2"
                   value={form.persona.ci_expedicion}
                   onChange={(event) => updatePersonaField('ci_expedicion')(event.target.value)}
                 />
                 {fieldErrors.persona?.ci_expedicion && (
-                  <p className="text-sm text-red-600 mt-1">{fieldErrors.persona.ci_expedicion}</p>
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.ci_expedicion}</p>
                 )}
               </div>
             </div>
           </div>
-        )}
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-titulo">
