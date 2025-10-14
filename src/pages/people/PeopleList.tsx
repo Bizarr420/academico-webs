@@ -6,7 +6,7 @@ import StatusBadge from '@/app/components/StatusBadge';
 import { formatDateTime } from '@/app/utils/dates';
 import { resolveStatus } from '@/app/utils/status';
 import { deletePerson, getPeople, PEOPLE_PAGE_SIZE, restorePerson } from '@/app/services/people';
-import { SEX_LABELS } from '@/app/types';
+import { formatSexLabel } from '@/app/utils/person';
 import type { Person } from '@/app/types';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -118,12 +118,7 @@ export default function PeopleList() {
     return value.slice(0, 10);
   };
 
-  const formatSex = (value: Person['sexo']) => {
-    if (!value) {
-      return '-';
-    }
-    return SEX_LABELS[value];
-  };
+  const formatSex = (value: Person['sexo']) => formatSexLabel(value ?? null, '-');
 
   return (
     <div className="bg-white rounded-2xl shadow p-4">
