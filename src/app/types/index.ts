@@ -172,11 +172,13 @@ export const SEX_LABELS: Record<Sexo, string> = {
   X: 'Otro',
 };
 
+type UnknownString = string & {};
+
 export interface ApiPerson extends SoftDeleteMetadata {
   id: number;
   nombres: string;
   apellidos: string;
-  sexo?: Sexo | null;
+  sexo?: Sexo | UnknownString | null;
   fecha_nacimiento?: string | null;
   celular?: string | null;
   direccion?: string | null;
@@ -190,7 +192,7 @@ export interface Person extends SoftDeleteMetadata {
   id: number;
   nombres: string;
   apellidos: string;
-  sexo: Sexo | null;
+  sexo: Sexo | UnknownString | null;
   fecha_nacimiento: string | null;
   celular: string | null;
   direccion: string | null;

@@ -1,12 +1,9 @@
 import StatusBadge from '@/app/components/StatusBadge';
 import { formatDateTime } from '@/app/utils/dates';
 import { resolveStatus } from '@/app/utils/status';
+import { formatSexLabel } from '@/app/utils/person';
 import type { Student } from '@/app/types';
-import {
-  SEX_LABELS,
-  STUDENT_SITUATION_LABELS,
-  STUDENT_STATUS_LABELS,
-} from '@/app/types';
+import { STUDENT_SITUATION_LABELS, STUDENT_STATUS_LABELS } from '@/app/types';
 
 export interface StudentSummaryProps {
   student: Student;
@@ -33,7 +30,7 @@ export function StudentSummary({ student, className }: StudentSummaryProps) {
         .join(' ')
     : '';
 
-  const sexoLabel = persona?.sexo ? SEX_LABELS[persona.sexo] : 'No especificado';
+  const sexoLabel = formatSexLabel(persona?.sexo ?? null, 'No especificado');
   const personaName = fullName || (persona ? `Persona ${student.persona_id}` : 'Sin información');
   const status = resolveStatus({ estado: student.estado ?? undefined, activo: student.activo });
   const isInactive = status.isActive === false;
