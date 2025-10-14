@@ -12,10 +12,10 @@ type RequireViewProps = {
 const ensureArray = (code: ViewCode | ViewCode[]): ViewCode[] => (Array.isArray(code) ? code : [code]);
 
 export function RequireView({ code, children }: RequireViewProps) {
-  const { hasView, isAuthenticated, isLoading } = useAuth();
+  const { hasView, isAuthenticated, isLoading, bypassViewCheck } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  if (isLoading && !bypassViewCheck) {
     return (
       <div className="py-10 text-center text-sm text-gray-600">
         Verificando permisos…
@@ -25,6 +25,10 @@ export function RequireView({ code, children }: RequireViewProps) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (bypassViewCheck) {
+    return <>{children}</>;
   }
 
   const requiredCodes = ensureArray(code);

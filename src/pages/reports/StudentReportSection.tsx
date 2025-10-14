@@ -122,6 +122,20 @@ export default function StudentReportSection() {
               <h4 className="font-medium text-gray-700">Tendencia de calificaciones</h4>
               <TrendChart data={summary.tendencia} />
             </div>
+
+            {summary.series?.comparativo && summary.series.comparativo.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-medium text-gray-700">Comparativa del curso</h4>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {summary.series.comparativo.map((point) => (
+                    <div key={point.periodo} className="rounded-lg border px-3 py-2 bg-white">
+                      <div className="text-sm font-semibold text-gray-800">{point.periodo}</div>
+                      <div className="text-xs text-gray-500">{point.nota.toFixed(2)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -18,7 +18,7 @@ export default function AlertStatusDialog({ alert, open, onClose, onSubmit }: Al
   useEffect(() => {
     if (open && alert) {
       setStatus(alert.estado);
-      setComment('');
+      setComment(alert.observacion ?? alert.comentario ?? '');
     }
   }, [alert, open]);
 
@@ -59,7 +59,7 @@ export default function AlertStatusDialog({ alert, open, onClose, onSubmit }: Al
 
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-600" htmlFor="alert-status-comment">
-            Comentario
+            Observación
           </label>
           <textarea
             id="alert-status-comment"

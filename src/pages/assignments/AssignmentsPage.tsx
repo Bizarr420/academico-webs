@@ -11,17 +11,22 @@ import { resolveApiErrorMessage } from '@/app/utils/errors';
 
 const PAGE_SIZE = 10;
 
-const createInitialFilters = (): BaseFilterValues => ({
+type FilterState = BaseFilterValues & {
+  incluir_inactivos: boolean;
+};
+
+const createInitialFilters = (): FilterState => ({
   periodo_id: null,
   curso_id: null,
   paralelo_id: null,
   materia_id: null,
   docente_id: null,
   search: '',
+  incluir_inactivos: false,
 });
 
 export default function AssignmentsPage() {
-  const [filters, setFilters] = useState<BaseFilterValues>(createInitialFilters);
+  const [filters, setFilters] = useState<FilterState>(createInitialFilters);
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({
     key: 'periodo',
@@ -55,6 +60,7 @@ export default function AssignmentsPage() {
       filters.materia_id,
       filters.docente_id,
       debouncedSearch,
+      filters.incluir_inactivos,
     ],
     queryFn: () =>
       getAssignments({
@@ -66,6 +72,7 @@ export default function AssignmentsPage() {
         materia_id: filters.materia_id ?? undefined,
         docente_id: filters.docente_id ?? undefined,
         search: debouncedSearch || undefined,
+        incluir_inactivos: filters.incluir_inactivos || undefined,
       }),
     enabled: queryEnabled,
     placeholderData: (previous) => previous,
@@ -93,6 +100,8 @@ export default function AssignmentsPage() {
             return assignment.materia ?? '';
           case 'docente':
             return assignment.docente ?? '';
+          case 'estado':
+            return assignment.activo === false ? 'INACTIVA' : assignment.estado ?? 'ACTIVA';
           case 'actualizado_en':
             return assignment.actualizado_en ?? '';
           default:
@@ -117,7 +126,7 @@ export default function AssignmentsPage() {
     mutationFn: async (id: number) => deleteAssignment(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assignments'] });
-      setFeedback('Asignación eliminada correctamente.');
+      setFeedback('Asignación archivada correctamente.');
     },
     onError: (error) => {
       setErrorMessage(resolveApiErrorMessage(error, 'No se pudo eliminar la asignación.'));
@@ -125,7 +134,14 @@ export default function AssignmentsPage() {
   });
 
   const handleDelete = (assignment: Assignment) => {
-    const confirmed = window.confirm('¿Eliminar esta asignación? Esta acción no se puede deshacer.');
+    if (assignment.activo === false) {
+      window.alert('Esta asignación ya se encuentra inactiva.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      '¿Archivar esta asignación? Podrás volver a activarla desde el backend si es necesario.',
+    );
     if (!confirmed) {
       return;
     }
@@ -133,6 +149,17 @@ export default function AssignmentsPage() {
     setFeedback(null);
     setErrorMessage(null);
     deleteMutation.mutate(assignment.id);
+  };
+
+  const relationLabel = (value?: string | null) => {
+    if (!value) {
+      return null;
+    }
+    const normalized = value.trim();
+    if (!normalized || normalized.toUpperCase() === 'ACTIVO') {
+      return null;
+    }
+    return normalized;
   };
 
   const columns: DataTableColumn<Assignment>[] = [
@@ -150,6 +177,16 @@ export default function AssignmentsPage() {
         <div className="space-y-1">
           <div className="font-medium text-gray-900">{assignment.curso ?? '—'}</div>
           <div className="text-xs text-gray-500">{assignment.paralelo ?? 'Sin paralelo'}</div>
+          {relationLabel(assignment.relaciones?.curso) && (
+            <div className="text-xs text-amber-600">
+              Estado curso: {relationLabel(assignment.relaciones?.curso)}
+            </div>
+          )}
+          {relationLabel(assignment.relaciones?.paralelo) && (
+            <div className="text-xs text-amber-600">
+              Estado paralelo: {relationLabel(assignment.relaciones?.paralelo)}
+            </div>
+          )}
         </div>
       ),
     },
@@ -157,13 +194,59 @@ export default function AssignmentsPage() {
       key: 'materia',
       header: 'Materia',
       sortable: true,
-      render: (assignment) => assignment.materia ?? '—',
+      render: (assignment) => (
+        <div className="space-y-1">
+          <div>{assignment.materia ?? '—'}</div>
+          {relationLabel(assignment.relaciones?.materia) && (
+            <div className="text-xs text-amber-600">
+              Estado materia: {relationLabel(assignment.relaciones?.materia)}
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       key: 'docente',
       header: 'Docente',
       sortable: true,
-      render: (assignment) => assignment.docente ?? '—',
+      render: (assignment) => (
+        <div className="space-y-1">
+          <div>{assignment.docente ?? '—'}</div>
+          {relationLabel(assignment.relaciones?.docente) && (
+            <div className="text-xs text-amber-600">
+              Estado docente: {relationLabel(assignment.relaciones?.docente)}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'estado',
+      header: 'Estado',
+      sortable: true,
+      render: (assignment) => {
+        const inactive = assignment.activo === false || Boolean(assignment.eliminado_en);
+        const label = inactive
+          ? assignment.estado?.toLowerCase() === 'inactivo'
+            ? 'Inactiva'
+            : 'Archivada'
+          : assignment.estado ?? 'Activa';
+        const badgeClass = inactive
+          ? 'bg-rose-100 text-rose-700'
+          : 'bg-emerald-100 text-emerald-700';
+        return (
+          <div className="flex flex-col gap-1">
+            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${badgeClass}`}>
+              {label}
+            </span>
+            {assignment.eliminado_en && (
+              <span className="text-[11px] text-gray-500">
+                Archivada el {formatDateTime(assignment.eliminado_en)}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'vigencia',
@@ -207,6 +290,7 @@ export default function AssignmentsPage() {
               setSelectedAssignment(assignment);
               setShowForm(true);
             }}
+            disabled={assignment.activo === false}
           >
             Editar
           </button>
@@ -214,7 +298,7 @@ export default function AssignmentsPage() {
             type="button"
             className="text-sm text-red-600 hover:underline"
             onClick={() => handleDelete(assignment)}
-            disabled={deleteMutation.isPending}
+            disabled={deleteMutation.isPending || assignment.activo === false}
           >
             Eliminar
           </button>
@@ -223,7 +307,7 @@ export default function AssignmentsPage() {
     },
   ];
 
-  const handleFiltersChange = (changes: Partial<BaseFilterValues>) => {
+  const handleFiltersChange = (changes: Partial<FilterState>) => {
     setFilters((prev) => ({ ...prev, ...changes }));
     setPage(1);
     setFeedback(null);
@@ -276,15 +360,25 @@ export default function AssignmentsPage() {
           </button>
         }
         filters={
-          <>
+          <div className="space-y-3">
             <BaseAcademicFilters values={filters} onChange={handleFiltersChange} showTeacher />
             {!queryEnabled && (
               <p className="mt-2 text-sm text-gray-500">
                 Selecciona al menos un periodo para ver las asignaciones.
               </p>
             )}
-            {feedback && <p className="mt-2 text-sm text-green-600">{feedback}</p>}
-          </>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                id="assignments-include-inactive"
+                type="checkbox"
+                className="h-4 w-4"
+                checked={filters.incluir_inactivos}
+                onChange={(event) => handleFiltersChange({ incluir_inactivos: event.target.checked })}
+              />
+              <label htmlFor="assignments-include-inactive">Incluir asignaciones archivadas</label>
+            </div>
+            {feedback && <p className="text-sm text-green-600">{feedback}</p>}
+          </div>
         }
         emptyMessage={queryEnabled ? 'No se encontraron asignaciones con los filtros seleccionados.' : 'Selecciona filtros para comenzar.'}
       />

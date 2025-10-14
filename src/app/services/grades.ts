@@ -12,6 +12,29 @@ import type {
 const UNITARY_GRADES_ENDPOINT = '/notas/unitarias';
 const MASSIVE_GRADES_ENDPOINT = '/notas/masivas';
 
+const normalizeResult = (result: GradeMassiveResult): GradeMassiveResult => ({
+  ...result,
+  observaciones: Array.isArray(result.observaciones) ? result.observaciones : [],
+  errores: Array.isArray(result.errores)
+    ? result.errores.map((error) => ({
+        fila: error.fila,
+        mensaje: error.mensaje,
+      }))
+    : [],
+});
+
+const normalizePreview = (preview: GradeMassivePreview): GradeMassivePreview => ({
+  ...normalizeResult(preview),
+  filas: Array.isArray(preview.filas)
+    ? preview.filas.map((row) => ({
+        ...row,
+        errores: Array.isArray(row.errores) ? row.errores : [],
+        observacion: row.observacion ?? null,
+        notas: row.notas ?? {},
+      }))
+    : [],
+});
+
 export async function getUnitaryGrades(filters: GradeUnitaryFilters) {
   const params: Record<string, unknown> = {};
 
@@ -74,7 +97,7 @@ export async function previewMassiveGradeUpload(uploadId: string, mapping: Grade
     mapping,
   );
 
-  return data;
+  return normalizePreview(data);
 }
 
 export async function confirmMassiveGradeUpload(uploadId: string) {
@@ -82,6 +105,6 @@ export async function confirmMassiveGradeUpload(uploadId: string) {
     `${withTrailingSlash(MASSIVE_GRADES_ENDPOINT)}${uploadId}/confirm`,
   );
 
-  return data;
+  return normalizeResult(data);
 }
 

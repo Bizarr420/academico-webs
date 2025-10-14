@@ -292,6 +292,17 @@ export default function MassiveGradesTab() {
               </div>
             </div>
 
+            {preview.observaciones && preview.observaciones.length > 0 && (
+              <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                <p className="font-medium">Observaciones detectadas</p>
+                <ul className="mt-1 list-disc list-inside space-y-1">
+                  {preview.observaciones.map((note, index) => (
+                    <li key={`${note}-${index}`}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="overflow-x-auto max-h-96 border rounded">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
@@ -309,11 +320,24 @@ export default function MassiveGradesTab() {
                       <td className="px-3 py-2">{row.estudiante}</td>
                       <td className="px-3 py-2 capitalize">{row.estado}</td>
                       <td className="px-3 py-2 text-sm text-gray-600">
-                        {row.errores && row.errores.length > 0
-                          ? row.errores.join('; ')
-                          : Object.entries(row.notas)
-                              .map(([evaluation, value]) => `${evaluation}: ${value ?? '—'}`)
-                              .join(' | ')}
+                        {row.errores && row.errores.length > 0 ? (
+                          <div className="space-y-1">
+                            {row.errores.map((error) => (
+                              <div key={error}>{error}</div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div>
+                              {Object.entries(row.notas)
+                                .map(([evaluation, value]) => `${evaluation}: ${value ?? '—'}`)
+                                .join(' | ')}
+                            </div>
+                            {row.observacion && (
+                              <div className="text-xs text-amber-600">{row.observacion}</div>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -349,6 +373,13 @@ export default function MassiveGradesTab() {
                   Insertados: {result.insertados} · Actualizados: {result.actualizados} · Errores:{' '}
                   {result.errores.length}
                 </p>
+                {result.observaciones && result.observaciones.length > 0 && (
+                  <ul className="mt-2 list-disc list-inside text-xs text-green-800 space-y-1">
+                    {result.observaciones.map((note, index) => (
+                      <li key={`${note}-${index}`}>{note}</li>
+                    ))}
+                  </ul>
+                )}
                 {result.errores.length > 0 && (
                   <ul className="mt-2 list-disc list-inside text-xs text-green-800">
                     {result.errores.slice(0, 5).map((error) => (

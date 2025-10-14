@@ -43,14 +43,20 @@ export default function AssignmentForm({ open, assignment, onClose, onSaved }: A
 
   const title = assignment ? 'Editar asignación' : 'Nueva asignación';
 
+  const isArchived = assignment?.activo === false;
+
   const canSubmit = useMemo(() => {
+    if (isArchived) {
+      return false;
+    }
+
     return (
       typeof state.periodo_id === 'number' &&
       typeof state.curso_id === 'number' &&
       typeof state.materia_id === 'number' &&
       typeof state.docente_id === 'number'
     );
-  }, [state]);
+  }, [isArchived, state]);
 
   const mutation = useMutation({
     mutationFn: async (payload: AssignmentPayload) =>
@@ -79,6 +85,11 @@ export default function AssignmentForm({ open, assignment, onClose, onSaved }: A
     };
 
   const handleSubmit = () => {
+    if (isArchived) {
+      setErrorMessage('Esta asignación está archivada y no puede modificarse.');
+      return;
+    }
+
     if (!canSubmit) {
       setErrorMessage('Completa los campos requeridos.');
       return;
@@ -107,6 +118,11 @@ export default function AssignmentForm({ open, assignment, onClose, onSaved }: A
       error={errorMessage}
       submitLabel={assignment ? 'Actualizar' : 'Crear'}
     >
+      {isArchived && (
+        <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Esta asignación está archivada. Para modificarla primero debes reactivarla desde el backend.
+        </div>
+      )}
       <BaseAcademicFilters
         values={state}
         onChange={handleFiltersChange}

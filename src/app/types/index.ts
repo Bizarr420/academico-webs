@@ -352,6 +352,14 @@ export interface PeriodFilters extends PaginationFilters {
   vigente?: boolean;
 }
 
+export interface AssignmentRelationState {
+  curso?: string | null;
+  paralelo?: string | null;
+  materia?: string | null;
+  docente?: string | null;
+  periodo?: string | null;
+}
+
 export interface Assignment extends SoftDeleteMetadata {
   id: number;
   curso_id: number;
@@ -368,6 +376,7 @@ export interface Assignment extends SoftDeleteMetadata {
   fecha_fin?: string | null;
   actualizado_en?: string | null;
   creado_en?: string | null;
+  relaciones?: AssignmentRelationState | null;
 }
 
 export interface AssignmentPayload {
@@ -387,6 +396,9 @@ export interface AssignmentFilters extends PaginationFilters {
   materia_id?: number;
   docente_id?: number;
   search?: string;
+  estado?: string;
+  activo?: boolean;
+  incluir_inactivos?: boolean;
 }
 
 export interface GradeEvaluation {
@@ -454,12 +466,14 @@ export interface GradeMassivePreviewRow {
   estado: 'inserted' | 'updated' | 'error';
   errores?: string[];
   notas: Record<string, number | null>;
+  observacion?: string | null;
 }
 
 export interface GradeMassiveResult {
   insertados: number;
   actualizados: number;
   errores: { fila: number; mensaje: string }[];
+  observaciones?: string[];
 }
 
 export interface GradeMassivePreview extends GradeMassiveResult {
@@ -476,12 +490,19 @@ export interface StudentReportTrendPoint {
   nota: number;
 }
 
+export interface StudentReportSeries {
+  tendencia: StudentReportTrendPoint[];
+  comparativo?: StudentReportTrendPoint[];
+}
+
 export interface StudentReportSummary {
   estudiante: string;
   materia: string;
   promedio: number;
   kpis: StudentReportKpi[];
   tendencia: StudentReportTrendPoint[];
+  comparativa?: StudentReportTrendPoint[];
+  series?: StudentReportSeries;
 }
 
 export interface StudentReportFilters {
@@ -497,6 +518,34 @@ export interface CourseReportRow {
   promedio: number;
   aprobados: number;
   reprobados: number;
+}
+
+export interface CourseReportMetric {
+  label: string;
+  value: string;
+  delta?: number | null;
+}
+
+export interface CourseReportTrendPoint {
+  etiqueta: string;
+  valor: number;
+}
+
+export interface CourseReportSummaryBlock {
+  registros: number;
+  promedio_general?: number | null;
+  aprobados?: number | null;
+  reprobados?: number | null;
+}
+
+export interface CourseReportAnalytics {
+  resumen: CourseReportSummaryBlock;
+  kpis: CourseReportMetric[];
+  series: {
+    tendencia?: CourseReportTrendPoint[];
+    aprobacion?: CourseReportTrendPoint[];
+  };
+  filas: CourseReportRow[];
 }
 
 export interface CourseReportFilters {
@@ -523,10 +572,12 @@ export interface Alert {
   curso?: string | null;
   periodo?: string | null;
   motivo: string;
+  tipo?: string | null;
   score: number;
   estado: AlertStatus;
   fecha: string;
   comentario?: string | null;
+  observacion?: string | null;
 }
 
 export interface AlertFilters extends PaginationFilters {
@@ -540,4 +591,15 @@ export interface AlertFilters extends PaginationFilters {
 export interface AlertStatusPayload {
   estado: AlertStatus;
   comentario?: string | null;
+  observacion?: string | null;
+}
+
+export interface AlertSummaryBreakdown {
+  por_estado: Record<string, number>;
+  por_tipo: Record<string, number>;
+}
+
+export interface AlertCollection extends Paginated<Alert> {
+  resumen: AlertSummaryBreakdown | null;
+  observaciones: string[];
 }
