@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import BaseAcademicFilters, { type BaseFilterValues } from '@/app/components/BaseAcademicFilters';
-import type { CourseReportRow } from '@/app/types';
+import TrendChart from '@/app/components/TrendChart';
+import type { CourseReportAnalytics, CourseReportRow, StudentReportTrendPoint } from '@/app/types';
 import { getCourseReport } from '@/app/services/reports';
 
 const createInitialFilters = (): BaseFilterValues => ({
@@ -54,7 +55,65 @@ export default function CourseReportSection() {
     enabled: queryEnabled,
   });
 
-  const rows: CourseReportRow[] = data ?? [];
+  const analytics: CourseReportAnalytics | null = data ?? null;
+  const rows: CourseReportRow[] = useMemo(() => analytics?.filas ?? [], [analytics?.filas]);
+  const resumen = analytics?.resumen ?? { registros: rows.length };
+  const metrics = useMemo(() => {
+    const derived: { label: string; value: string }[] = [
+      {
+        label: 'Promedio general',
+        value:
+          typeof resumen.promedio_general === 'number'
+            ? resumen.promedio_general.toFixed(2)
+            : rows.length > 0
+            ? (rows.reduce((sum, row) => sum + row.promedio, 0) / rows.length).toFixed(2)
+            : '—',
+      },
+      {
+        label: 'Aprobados',
+        value:
+          resumen.aprobados !== null && resumen.aprobados !== undefined
+            ? String(resumen.aprobados)
+            : rows.length > 0
+            ? String(rows.reduce((sum, row) => sum + row.aprobados, 0))
+            : '0',
+      },
+      {
+        label: 'Reprobados',
+        value:
+          resumen.reprobados !== null && resumen.reprobados !== undefined
+            ? String(resumen.reprobados)
+            : rows.length > 0
+            ? String(rows.reduce((sum, row) => sum + row.reprobados, 0))
+            : '0',
+      },
+    ];
+
+    const extra = analytics?.kpis ?? [];
+    const usedLabels = new Set(derived.map((metric) => metric.label));
+    extra.forEach((metric) => {
+      if (!metric?.label || usedLabels.has(metric.label)) {
+        return;
+      }
+      derived.push({ label: metric.label, value: metric.value });
+      usedLabels.add(metric.label);
+    });
+
+    return derived;
+  }, [analytics?.kpis, resumen.aprobados, resumen.promedio_general, resumen.reprobados, rows]);
+
+  const trendPoints: StudentReportTrendPoint[] = useMemo(() => {
+    if (!analytics?.series?.tendencia) {
+      return [];
+    }
+
+    return analytics.series.tendencia.map((point) => ({
+      periodo: point.etiqueta,
+      nota: typeof point.valor === 'number' ? point.valor : Number(point.valor) || 0,
+    }));
+  }, [analytics?.series?.tendencia]);
+
+  const approvalBreakdown = analytics?.series?.aprobacion ?? [];
 
   const csv = useMemo(() => toCsv(rows), [rows]);
 
@@ -94,20 +153,54 @@ export default function CourseReportSection() {
         )}
 
         {rows.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                Registros: {rows.length}
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+              <div className="text-sm text-gray-600">
+                Registros: {resumen.registros ?? rows.length}
                 {isFetching && <span className="ml-2 text-xs text-gray-400">Actualizando…</span>}
               </div>
-              <button
-                type="button"
-                className="px-4 py-2 rounded border border-gray-300"
-                onClick={handleExport}
-              >
-                Exportar CSV
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded border border-gray-300"
+                  onClick={handleExport}
+                >
+                  Exportar CSV
+                </button>
+              </div>
             </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {metrics.map((metric) => (
+                <div key={metric.label} className="rounded-xl border px-4 py-3 bg-gray-50">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">{metric.label}</div>
+                  <div className="text-xl font-semibold text-gray-900">{metric.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {trendPoints.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-medium text-gray-700">Tendencia de promedios</h3>
+                <TrendChart data={trendPoints} />
+              </div>
+            )}
+
+            {approvalBreakdown.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-medium text-gray-700">Detalle de aprobación</h3>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {approvalBreakdown.map((item) => (
+                    <div key={item.etiqueta} className="rounded-lg border px-3 py-2">
+                      <div className="text-sm font-semibold text-gray-800">{item.etiqueta}</div>
+                      <div className="text-xs text-gray-500">
+                        {typeof item.valor === 'number' ? item.valor.toFixed(2) : item.valor}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

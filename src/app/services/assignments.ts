@@ -27,6 +27,15 @@ interface ApiAssignment {
   actualizado_en?: string | null;
   creado_en?: string | null;
   estado?: string | null;
+  activo?: boolean | null;
+  eliminado_en?: string | null;
+  relaciones?: {
+    curso?: string | null;
+    paralelo?: string | null;
+    materia?: string | null;
+    docente?: string | null;
+    periodo?: string | null;
+  } | null;
 }
 
 const mapAssignment = (assignment: ApiAssignment): Assignment => ({
@@ -46,6 +55,9 @@ const mapAssignment = (assignment: ApiAssignment): Assignment => ({
   actualizado_en: assignment.actualizado_en ?? null,
   creado_en: assignment.creado_en ?? null,
   estado: assignment.estado ?? null,
+  activo: typeof assignment.activo === 'boolean' ? assignment.activo : null,
+  eliminado_en: assignment.eliminado_en ?? null,
+  relaciones: assignment.relaciones ?? null,
 });
 
 const mapPayload = (payload: AssignmentPayload) => {
@@ -65,8 +77,19 @@ const mapPayload = (payload: AssignmentPayload) => {
 };
 
 export async function getAssignments(filters: AssignmentFilters): Promise<Paginated<Assignment>> {
-  const { page, page_size = 10, periodo_id, curso_id, paralelo_id, materia_id, docente_id, search } =
-    filters;
+  const {
+    page,
+    page_size = 10,
+    periodo_id,
+    curso_id,
+    paralelo_id,
+    materia_id,
+    docente_id,
+    search,
+    estado,
+    activo,
+    incluir_inactivos,
+  } = filters;
 
   const params: Record<string, unknown> = {
     page,
@@ -95,6 +118,18 @@ export async function getAssignments(filters: AssignmentFilters): Promise<Pagina
 
   if (typeof search === 'string' && search.trim().length > 0) {
     params.search = search.trim();
+  }
+
+  if (typeof estado === 'string' && estado.trim().length > 0) {
+    params.estado = estado.trim();
+  }
+
+  if (typeof activo === 'boolean') {
+    params.activo = activo;
+  }
+
+  if (typeof incluir_inactivos === 'boolean') {
+    params.incluir_inactivos = incluir_inactivos;
   }
 
   const { data } = await api.get<PaginatedResponse<ApiAssignment>>(withTrailingSlash(ASSIGNMENTS_ENDPOINT), {

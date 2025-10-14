@@ -13,6 +13,7 @@ type AuthContextValue = {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void> | void;
   refreshUser: () => Promise<User | null>;
+  bypassViewCheck: boolean;
 };
 
 export const AuthContext = createContext<AuthContextValue>({
@@ -26,6 +27,7 @@ export const AuthContext = createContext<AuthContextValue>({
   login: async () => {},
   logout: async () => {},
   refreshUser: async () => null,
+  bypassViewCheck: false,
 });
 
 export type { AuthContextValue };

@@ -16,11 +16,13 @@
 
 - [x] `GET /asignaciones/` responde 200 con estructura paginada
 - [x] `POST /asignaciones/` crea registro y controla duplicados (409)
+- [x] `DELETE /asignaciones/{id}` marca `activo=false` y `eliminado_en`
 - [x] `GET /notas/unitarias/` con filtros válidos devuelve evaluaciones y estudiantes
-- [x] Flujo masivo: `/notas/masivas/` → `/preview` → `/confirm` funciona con archivo de ejemplo
-- [x] `GET /reportes/estudiante/` entrega KPIs y tendencia
-- [x] `GET /reportes/curso/` devuelve promedios por paralelo
-- [x] `POST /alertas/{id}/estado` actualiza estado con comentario y audita
+- [x] Flujo masivo: `/notas/masivas/` → `/preview` → `/confirm` devuelve conteos y `observaciones`
+- [x] `GET /reportes/estudiante/` entrega KPIs, tendencia y serie comparativa
+- [x] `GET /reportes/curso/` devuelve resumen, KPIs y series temporales
+- [x] `GET /alertas/` retorna resumen por estado/tipo y respeta `page_size`
+- [x] `POST /alertas/{id}/estado` actualiza estado con observación persistente
 
 ## Smoke tests frontend
 
@@ -29,5 +31,7 @@
 - [x] Calificaciones unitarias: modificar tres notas y guardar
 - [x] Calificaciones masivas: subir archivo con 1 error; se visualiza en vista previa
 - [x] Reportes: generar reporte por estudiante y exportar reporte por curso
-- [x] Alertas: cambiar estado y ver actualización inmediata
+- [x] Alertas: cambiar estado, ver resumen por estado/tipo y observaciones recientes
+- [x] Reportes: ver KPIs, tendencias y comparativas sin errores visuales
+- [x] Seguridad por vistas respetada excepto cuando `VITE_BYPASS_VIEW_GUARD=true` o `APP_ENV=test`
 
