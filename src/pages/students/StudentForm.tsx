@@ -438,7 +438,7 @@ export default function StudentForm() {
       personaPayload.ci_expedicion = result.data.persona.ci_expedicion;
     }
 
-    let payload: StudentPayload = {
+    const payload: StudentPayload = {
       codigo_rude: result.data.codigo_rude,
       persona: personaPayload,
     };
