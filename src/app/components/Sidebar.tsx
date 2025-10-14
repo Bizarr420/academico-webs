@@ -146,6 +146,41 @@ const IconAudit: IconComponent = ({ className = 'h-5 w-5' }) => (
   </svg>
 );
 
+const IconClipboard: IconComponent = ({ className = 'h-5 w-5' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className} aria-hidden>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 4.5V3.75A1.75 1.75 0 0 1 10.75 2h2.5A1.75 1.75 0 0 1 15 3.75V4.5h2.25A1.75 1.75 0 0 1 19 6.25v12.5A1.75 1.75 0 0 1 17.25 20.5H6.75A1.75 1.75 0 0 1 5 18.75V6.25A1.75 1.75 0 0 1 6.75 4.5z"
+    />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5h6M9 9h6M9 12.75H15M9 16.5h3" />
+  </svg>
+);
+
+const IconGrades: IconComponent = ({ className = 'h-5 w-5' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className} aria-hidden>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5h16.5M5.25 7.5h13.5M6 7.5l.375 11.25a1.5 1.5 0 0 0 1.5 1.5h8.25a1.5 1.5 0 0 0 1.5-1.5L18 7.5" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 7.5 9.375 19.5M15 7.5l-.375 12" />
+  </svg>
+);
+
+const IconChart: IconComponent = ({ className = 'h-5 w-5' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className} aria-hidden>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 19.5 9 13.5l4.5 4.5 6.75-9" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 19.5h-16.5" />
+  </svg>
+);
+
+const IconBell: IconComponent = ({ className = 'h-5 w-5' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className} aria-hidden>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M14.25 18.75a2.25 2.25 0 1 1-4.5 0M5.25 9.75a6.75 6.75 0 0 1 13.5 0c0 2.28.604 4.186 1.485 5.788.345.623-.115 1.462-.83 1.462H4.595c-.715 0-1.176-.839-.83-1.462.881-1.602 1.485-3.508 1.485-5.788z"
+    />
+  </svg>
+);
+
 const navigationItems: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: IconHome, permission: null },
   { to: '/estudiantes', label: 'Estudiantes', icon: IconUsers, permission: 'MATRICULAS' },
@@ -154,6 +189,10 @@ const navigationItems: NavItem[] = [
   { to: '/cursos', label: 'Cursos', icon: IconBook, permission: 'CURSOS' },
   { to: '/materias', label: 'Materias', icon: IconStack, permission: 'MATERIAS' },
   { to: '/usuarios', label: 'Usuarios', icon: IconShield, permission: 'USUARIOS' },
+  { to: '/asignaciones', label: 'Asignaciones', icon: IconClipboard, permission: 'ASIGNACIONES' },
+  { to: '/calificaciones', label: 'Calificaciones', icon: IconGrades, permission: 'NOTAS' },
+  { to: '/reportes', label: 'Reportes', icon: IconChart, permission: 'REPORTES' },
+  { to: '/alertas', label: 'Alertas', icon: IconBell, permission: 'ALERTAS' },
   { to: '/auditoria', label: 'Auditoría', icon: IconAudit, permission: 'AUDITORIA' },
 ];
 

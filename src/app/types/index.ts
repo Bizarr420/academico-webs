@@ -336,3 +336,208 @@ export interface AuditLogEntry {
 }
 
 export type AuditLogFilters = PaginationFilters;
+
+export interface Period {
+  id: number;
+  nombre: string;
+  gestion?: string | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  estado?: string | null;
+  activo?: boolean | null;
+}
+
+export interface PeriodFilters extends PaginationFilters {
+  estado?: string;
+  vigente?: boolean;
+}
+
+export interface Assignment extends SoftDeleteMetadata {
+  id: number;
+  curso_id: number;
+  curso?: string | null;
+  paralelo_id?: number | null;
+  paralelo?: string | null;
+  materia_id: number;
+  materia?: string | null;
+  docente_id: number;
+  docente?: string | null;
+  periodo_id: number;
+  periodo?: string | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  actualizado_en?: string | null;
+  creado_en?: string | null;
+}
+
+export interface AssignmentPayload {
+  curso_id: number;
+  paralelo_id?: number | null;
+  materia_id: number;
+  docente_id: number;
+  periodo_id: number;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+}
+
+export interface AssignmentFilters extends PaginationFilters {
+  periodo_id?: number;
+  curso_id?: number;
+  paralelo_id?: number;
+  materia_id?: number;
+  docente_id?: number;
+  search?: string;
+}
+
+export interface GradeEvaluation {
+  id: number;
+  nombre: string;
+  ponderacion?: number | null;
+}
+
+export interface StudentGradeValue {
+  evaluacion_id: number;
+  nota: number | null;
+  periodo_id: number;
+}
+
+export interface StudentGradeRow {
+  estudiante_id: number;
+  estudiante: string;
+  codigo?: string | null;
+  evaluaciones: StudentGradeValue[];
+}
+
+export interface GradeUnitaryResponse {
+  periodo_id: number;
+  materia_id: number;
+  curso_id: number;
+  paralelo_id?: number | null;
+  evaluaciones: GradeEvaluation[];
+  estudiantes: StudentGradeRow[];
+}
+
+export interface GradeUnitaryFilters {
+  periodo_id?: number;
+  curso_id?: number;
+  paralelo_id?: number;
+  materia_id?: number;
+}
+
+export interface GradeUnitaryPayload {
+  periodo_id: number;
+  materia_id: number;
+  curso_id: number;
+  paralelo_id?: number | null;
+  calificaciones: {
+    estudiante_id: number;
+    evaluacion_id: number;
+    nota: number | null;
+  }[];
+}
+
+export interface GradeMassiveDraft {
+  upload_id: string;
+  columns: string[];
+  evaluaciones: GradeEvaluation[];
+  registros_detectados?: number;
+}
+
+export interface GradeMassiveMapping {
+  identificador_estudiante: string;
+  evaluaciones: Record<number, string>;
+}
+
+export interface GradeMassivePreviewRow {
+  fila: number;
+  estudiante: string;
+  estado: 'inserted' | 'updated' | 'error';
+  errores?: string[];
+  notas: Record<string, number | null>;
+}
+
+export interface GradeMassiveResult {
+  insertados: number;
+  actualizados: number;
+  errores: { fila: number; mensaje: string }[];
+}
+
+export interface GradeMassivePreview extends GradeMassiveResult {
+  filas: GradeMassivePreviewRow[];
+}
+
+export interface StudentReportKpi {
+  label: string;
+  value: string;
+}
+
+export interface StudentReportTrendPoint {
+  periodo: string;
+  nota: number;
+}
+
+export interface StudentReportSummary {
+  estudiante: string;
+  materia: string;
+  promedio: number;
+  kpis: StudentReportKpi[];
+  tendencia: StudentReportTrendPoint[];
+}
+
+export interface StudentReportFilters {
+  periodo_id?: number;
+  materia_id?: number;
+  estudiante_id: number;
+}
+
+export interface CourseReportRow {
+  curso: string;
+  paralelo: string;
+  materia: string;
+  promedio: number;
+  aprobados: number;
+  reprobados: number;
+}
+
+export interface CourseReportFilters {
+  periodo_id?: number;
+  curso_id?: number;
+  paralelo_id?: number;
+  materia_id?: number;
+}
+
+export const ALERT_STATUS_CODES = ['ABIERTA', 'EN_PROCESO', 'RESUELTA', 'CERRADA'] as const;
+export type AlertStatus = (typeof ALERT_STATUS_CODES)[number] | (string & {});
+
+export const ALERT_STATUS_LABELS: Record<(typeof ALERT_STATUS_CODES)[number], string> = {
+  ABIERTA: 'Abierta',
+  EN_PROCESO: 'En proceso',
+  RESUELTA: 'Resuelta',
+  CERRADA: 'Cerrada',
+};
+
+export interface Alert {
+  id: number;
+  estudiante: string;
+  estudiante_id: number;
+  curso?: string | null;
+  periodo?: string | null;
+  motivo: string;
+  score: number;
+  estado: AlertStatus;
+  fecha: string;
+  comentario?: string | null;
+}
+
+export interface AlertFilters extends PaginationFilters {
+  estado?: AlertStatus | '';
+  curso_id?: number;
+  paralelo_id?: number;
+  periodo_id?: number;
+  search?: string;
+}
+
+export interface AlertStatusPayload {
+  estado: AlertStatus;
+  comentario?: string | null;
+}

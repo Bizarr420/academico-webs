@@ -20,6 +20,10 @@ import UsersList from '@/pages/users/UsersList';
 import UserForm from '@/pages/users/UserForm';
 import AuditLog from '@/pages/audit/AuditLog';
 import Forbidden from '@/pages/Forbidden';
+import AssignmentsPage from '@/pages/assignments/AssignmentsPage';
+import GradesPage from '@/pages/grades/GradesPage';
+import ReportsPage from '@/pages/reports/ReportsPage';
+import AlertsPage from '@/pages/alerts/AlertsPage';
 
 export default function AppRouter() {
   const { isAuthenticated } = useAuth();
@@ -181,6 +185,38 @@ export default function AppRouter() {
             element={
               <RequireView code="AUDITORIA">
                 <AuditLog />
+              </RequireView>
+            }
+          />
+          <Route
+            path="asignaciones"
+            element={
+              <RequireView code="ASIGNACIONES">
+                <AssignmentsPage />
+              </RequireView>
+            }
+          />
+          <Route
+            path="calificaciones"
+            element={
+              <RequireView code="NOTAS">
+                <GradesPage />
+              </RequireView>
+            }
+          />
+          <Route
+            path="reportes"
+            element={
+              <RequireView code="REPORTES">
+                <ReportsPage />
+              </RequireView>
+            }
+          />
+          <Route
+            path="alertas"
+            element={
+              <RequireView code="ALERTAS">
+                <AlertsPage />
               </RequireView>
             }
           />

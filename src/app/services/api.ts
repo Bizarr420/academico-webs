@@ -1,4 +1,4 @@
-import axios, { type AxiosRequestConfig } from 'axios';
+import axios, { type AxiosRequestConfig, type AxiosRequestHeaders } from 'axios';
 
 const SESSION_TOKEN_STORAGE_KEY = 'session_token';
 const TOKEN_KEY_SET = new Set([
@@ -184,13 +184,30 @@ const api = axios.create({
 
 export const withTrailingSlash = (path: string) => (path.endsWith('/') ? path : `${path}/`);
 
+api.interceptors.request.use((config) => {
+  const token = getSessionToken();
+  const headers = { ...(config.headers ?? {}) } as AxiosRequestHeaders;
+
+  if (token) {
+    headers.Authorization = formatAuthorizationToken(token);
+  }
+
+  if (!headers.Accept) {
+    headers.Accept = 'application/json';
+  }
+
+  config.headers = headers;
+
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401) {
       setSessionToken(null);
       localStorage.removeItem('user');
-      if (window.location.pathname !== '/login') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.replace('/login');
       }
     }
