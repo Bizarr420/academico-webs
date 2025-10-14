@@ -1,4 +1,4 @@
-import api, { withTrailingSlash } from '@/app/services/api';
+import api, { withAuth, withTrailingSlash } from '@/app/services/api';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type {
   ApiPerson,
@@ -71,9 +71,12 @@ export async function getPeople(filters: PersonFilters): Promise<Paginated<Perso
     params.incluir_inactivos = 1;
   }
 
-  const { data } = await api.get<PaginatedResponse<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), {
-    params,
-  });
+  const { data } = await api.get<PaginatedResponse<ApiPerson>>(
+    withTrailingSlash(PEOPLE_ENDPOINT),
+    withAuth({
+      params,
+    }),
+  );
   const normalized = normalizePaginatedResponse(data);
   return {
     items: normalized.items.map(mapPerson),
@@ -84,41 +87,42 @@ export async function getPeople(filters: PersonFilters): Promise<Paginated<Perso
 }
 
 export async function getPerson(id: number) {
-  const { data } = await api.get<ApiPerson>(`${PEOPLE_ENDPOINT}/${id}`);
+  const { data } = await api.get<ApiPerson>(`${PEOPLE_ENDPOINT}/${id}`, withAuth());
   return mapPerson(data);
 }
 
 export async function createPerson(payload: PersonPayload) {
   const body = mapPayloadToApi(payload);
-  const { data } = await api.post<ApiPerson>(withTrailingSlash(PEOPLE_ENDPOINT), body);
+  const { data } = await api.post<ApiPerson>(withTrailingSlash(PEOPLE_ENDPOINT), body, withAuth());
   return mapPerson(data);
 }
 
 export async function updatePerson(id: number, payload: PersonPayload) {
   const body = mapPayloadToApi(payload);
-  const { data } = await api.put<ApiPerson>(`${PEOPLE_ENDPOINT}/${id}`, body);
+  const { data } = await api.put<ApiPerson>(`${PEOPLE_ENDPOINT}/${id}`, body, withAuth());
   return mapPerson(data);
 }
 
 export async function deletePerson(id: number) {
-  await api.delete(`${PEOPLE_ENDPOINT}/${id}`);
+  await api.delete(`${PEOPLE_ENDPOINT}/${id}`, withAuth());
 }
 
 export async function restorePerson(id: number) {
   const { data } = await api.post<ApiPerson>(
     `${withTrailingSlash(PEOPLE_ENDPOINT)}${id}/restore`,
     undefined,
+    withAuth(),
   );
   return mapPerson(data);
 }
 
 export async function getAllPeople() {
-  const { data } = await api.get<PaginatedResponse<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), {
+  const { data } = await api.get<PaginatedResponse<ApiPerson>>(withTrailingSlash(PEOPLE_ENDPOINT), withAuth({
     params: {
       page: 1,
       page_size: 1000,
     },
-  });
+  }));
   const normalized = normalizePaginatedResponse(data);
   return normalized.items.map(mapPerson);
 }

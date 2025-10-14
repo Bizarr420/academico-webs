@@ -1,4 +1,4 @@
-import api, { withTrailingSlash } from '@/app/services/api';
+import api, { withAuth, withTrailingSlash } from '@/app/services/api';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type {
   Course,
@@ -100,9 +100,12 @@ export async function getCourses(filters: CourseFilters): Promise<Paginated<Cour
     params.incluir_inactivos = 1;
   }
 
-  const { data } = await api.get<PaginatedResponse<ApiCourse>>(withTrailingSlash(COURSES_ENDPOINT), {
-    params,
-  });
+  const { data } = await api.get<PaginatedResponse<ApiCourse>>(
+    withTrailingSlash(COURSES_ENDPOINT),
+    withAuth({
+      params,
+    }),
+  );
   const normalized = normalizePaginatedResponse(data);
   return {
     ...normalized,
@@ -111,34 +114,37 @@ export async function getCourses(filters: CourseFilters): Promise<Paginated<Cour
 }
 
 export async function getCourse(id: number) {
-  const { data } = await api.get<ApiCourse>(`${COURSES_ENDPOINT}/${id}`);
+  const { data } = await api.get<ApiCourse>(`${COURSES_ENDPOINT}/${id}`, withAuth());
   return mapCourse(data);
 }
 
 export async function createCourse(payload: CoursePayload) {
   const body = mapCoursePayloadToApi(payload);
-  const { data } = await api.post<ApiCourse>(withTrailingSlash(COURSES_ENDPOINT), body);
+  const { data } = await api.post<ApiCourse>(withTrailingSlash(COURSES_ENDPOINT), body, withAuth());
   return mapCourse(data);
 }
 
 export async function updateCourse(id: number, payload: CoursePayload) {
   const body = mapCoursePayloadToApi(payload);
-  const { data } = await api.put<ApiCourse>(`${COURSES_ENDPOINT}/${id}`, body);
+  const { data } = await api.put<ApiCourse>(`${COURSES_ENDPOINT}/${id}`, body, withAuth());
   return mapCourse(data);
 }
 
 export async function deleteCourse(id: number) {
-  await api.delete(`${COURSES_ENDPOINT}/${id}`);
+  await api.delete(`${COURSES_ENDPOINT}/${id}`, withAuth());
 }
 
 export async function getAllCourses(): Promise<Course[]> {
-  const { data } = await api.get<PaginatedResponse<ApiCourse>>(withTrailingSlash(COURSES_ENDPOINT), {
-    params: {
-      page: 1,
-      page_size: 1000,
-      estado: 'ACTIVO',
-    },
-  });
+  const { data } = await api.get<PaginatedResponse<ApiCourse>>(
+    withTrailingSlash(COURSES_ENDPOINT),
+    withAuth({
+      params: {
+        page: 1,
+        page_size: 1000,
+        estado: 'ACTIVO',
+      },
+    }),
+  );
   const normalized = normalizePaginatedResponse(data);
   return normalized.items.map((course) => mapCourse(course as ApiCourse));
 }
@@ -147,6 +153,7 @@ export async function restoreCourse(id: number) {
   const { data } = await api.post<ApiCourse>(
     `${withTrailingSlash(COURSES_ENDPOINT)}${id}/restore`,
     undefined,
+    withAuth(),
   );
   return mapCourse(data);
 }

@@ -384,7 +384,7 @@ export default function TeacherForm() {
       personaPayload.ci_expedicion = result.data.persona.ci_expedicion;
     }
 
-    let payload: TeacherPayload = {
+    const payload: TeacherPayload = {
       persona: personaPayload,
     };
 
