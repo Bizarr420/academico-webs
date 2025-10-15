@@ -45,7 +45,8 @@ export default function StudentsList() {
     }
   }, [showInactive, statusFilter]);
 
-  const estadoFilter = statusFilter;
+  const includeInactive = showInactive || statusFilter !== 'ACTIVO';
+  const estadoFilter = statusFilter === 'TODOS' ? undefined : statusFilter;
 
   const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ['students', page, debouncedSearch, statusFilter, showInactive],
@@ -56,6 +57,7 @@ export default function StudentsList() {
         codigo_rude: debouncedSearch || undefined,
         page_size: STUDENTS_PAGE_SIZE,
         estado: estadoFilter,
+        incluir_inactivos: includeInactive,
       }),
     placeholderData: (previousData) => previousData,
   });

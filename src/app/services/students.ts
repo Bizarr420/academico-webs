@@ -47,6 +47,8 @@ export async function getStudents(filters: StudentFilters): Promise<Paginated<St
     codigo_rude,
     page_size = STUDENTS_PAGE_SIZE,
     estado,
+    incluir_inactivos,
+    activo,
   } = filters;
   const params: Record<string, unknown> = {
     page,
@@ -61,6 +63,14 @@ export async function getStudents(filters: StudentFilters): Promise<Paginated<St
 
   if (typeof estado === 'string' && estado.trim().length > 0) {
     params.estado = estado.trim();
+  }
+
+  if (typeof activo === 'boolean') {
+    params.activo = activo ? 1 : 0;
+  }
+
+  if (incluir_inactivos) {
+    params.incluir_inactivos = 1;
   }
 
   const { data } = await api.get<PaginatedResponse<ApiStudent>>(
