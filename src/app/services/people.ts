@@ -1,4 +1,5 @@
 import api, { withAuth, withTrailingSlash } from '@/app/services/api';
+import { mapApiPerson } from '@/app/services/mappers';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type {
   ApiPerson,
@@ -12,23 +13,6 @@ import type {
 export const PEOPLE_PAGE_SIZE = 10;
 
 const PEOPLE_ENDPOINT = 'personas';
-
-const mapPerson = (person: ApiPerson): Person => ({
-  id: person.id,
-  nombres: person.nombres,
-  apellidos: person.apellidos,
-  sexo: person.sexo ?? null,
-  fecha_nacimiento: person.fecha_nacimiento ?? null,
-  celular: person.celular ?? null,
-  direccion: person.direccion ?? null,
-  ci_numero: person.ci_numero ?? null,
-  ci_complemento: person.ci_complemento ?? null,
-  ci_expedicion: person.ci_expedicion ?? null,
-  correo: person.correo ?? null,
-  estado: person.estado ?? null,
-  activo: person.activo ?? null,
-  eliminado_en: person.eliminado_en ?? null,
-});
 
 const mapPayloadToApi = (payload: PersonPayload) => {
   const body: Record<string, unknown> = {
@@ -79,7 +63,7 @@ export async function getPeople(filters: PersonFilters): Promise<Paginated<Perso
   );
   const normalized = normalizePaginatedResponse(data);
   return {
-    items: normalized.items.map(mapPerson),
+    items: normalized.items.map(mapApiPerson),
     total: normalized.total,
     page: normalized.page,
     page_size: normalized.page_size,
@@ -88,19 +72,19 @@ export async function getPeople(filters: PersonFilters): Promise<Paginated<Perso
 
 export async function getPerson(id: number) {
   const { data } = await api.get<ApiPerson>(`${PEOPLE_ENDPOINT}/${id}`, withAuth());
-  return mapPerson(data);
+  return mapApiPerson(data);
 }
 
 export async function createPerson(payload: PersonPayload) {
   const body = mapPayloadToApi(payload);
   const { data } = await api.post<ApiPerson>(withTrailingSlash(PEOPLE_ENDPOINT), body, withAuth());
-  return mapPerson(data);
+  return mapApiPerson(data);
 }
 
 export async function updatePerson(id: number, payload: PersonPayload) {
   const body = mapPayloadToApi(payload);
   const { data } = await api.put<ApiPerson>(`${PEOPLE_ENDPOINT}/${id}`, body, withAuth());
-  return mapPerson(data);
+  return mapApiPerson(data);
 }
 
 export async function deletePerson(id: number) {
@@ -113,7 +97,7 @@ export async function restorePerson(id: number) {
     undefined,
     withAuth(),
   );
-  return mapPerson(data);
+  return mapApiPerson(data);
 }
 
 export async function getAllPeople() {
@@ -124,5 +108,5 @@ export async function getAllPeople() {
     },
   }));
   const normalized = normalizePaginatedResponse(data);
-  return normalized.items.map(mapPerson);
+  return normalized.items.map(mapApiPerson);
 }
