@@ -48,13 +48,15 @@ export default function StudentsList() {
   const includeInactive = showInactive || statusFilter !== 'ACTIVO';
   const estadoFilter = statusFilter === 'TODOS' ? undefined : statusFilter;
 
+  const codigoRudeFilter = debouncedSearch && /^[0-9]+$/u.test(debouncedSearch) ? debouncedSearch : undefined;
+
   const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ['students', page, debouncedSearch, statusFilter, showInactive],
     queryFn: async () =>
       getStudents({
         page,
         search: debouncedSearch || undefined,
-        codigo_rude: debouncedSearch || undefined,
+        codigo_rude: codigoRudeFilter,
         page_size: STUDENTS_PAGE_SIZE,
         estado: estadoFilter,
         incluir_inactivos: includeInactive,
@@ -67,7 +69,9 @@ export default function StudentsList() {
   const total = data?.total ?? 0;
   const isEmpty = !isLoading && !isError && students.length === 0;
   const disablePrevious = page === 1 || isFetching;
-  const disableNext = students.length < pageSize || isFetching;
+  const reachedEndByTotal = total > 0 && page * pageSize >= total;
+  const reachedEndByItems = total === 0 && students.length < pageSize;
+  const disableNext = isFetching || reachedEndByTotal || reachedEndByItems;
 
   const deactivateMutation = useMutation({
     mutationFn: async (id: number) => deleteStudent(id),

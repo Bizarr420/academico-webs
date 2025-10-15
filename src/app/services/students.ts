@@ -55,9 +55,13 @@ export async function getStudents(filters: StudentFilters): Promise<Paginated<St
     page_size,
   };
 
+  if (typeof search === 'string' && search.trim().length > 0) {
+    params.search = search.trim();
+  }
+
   if (typeof codigo_rude === 'string' && codigo_rude.trim().length > 0) {
     params.codigo_rude = codigo_rude.trim();
-  } else if (typeof search === 'string' && search.trim().length > 0) {
+  } else if (typeof search === 'string' && /^[0-9]+$/u.test(search.trim())) {
     params.codigo_rude = search.trim();
   }
 
