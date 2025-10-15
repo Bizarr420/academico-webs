@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { isAxiosError } from 'axios';
 
 import { createStudent, getStudent, restoreStudent, updateStudent } from '@/app/services/students';
+import { updatePerson } from '@/app/services/people';
 import {
   SEX_CODES,
   SEX_LABELS,
@@ -245,9 +246,54 @@ export default function StudentForm() {
     },
   });
 
+  type BaseStudentPayload = {
+    codigo_rude: string;
+    anio_ingreso?: number | null;
+    situacion?: StudentSituation | null;
+    estado?: StudentStatus | null;
+  };
+
+  type SubmitMutationInput =
+    | {
+        mode: 'create';
+        basePayload: BaseStudentPayload;
+        personaPayload: PersonPayload;
+      }
+    | {
+        mode: 'update';
+        basePayload: BaseStudentPayload;
+        personaPayload: PersonPayload;
+        studentId: number;
+        personaId: number | null;
+      };
+
   const mutation = useMutation({
-    mutationFn: async (payload: StudentPayload) =>
-      studentId ? updateStudent(Number(studentId), payload) : createStudent(payload),
+    mutationFn: async (input: SubmitMutationInput) => {
+      if (input.mode === 'create') {
+        const payload: StudentPayload = {
+          ...input.basePayload,
+          persona: input.personaPayload,
+        };
+        return createStudent(payload);
+      }
+
+      const { basePayload, personaPayload, studentId: targetStudentId, personaId } = input;
+
+      if (personaId) {
+        await updatePerson(personaId, personaPayload);
+        const payload: StudentPayload = {
+          ...basePayload,
+          persona_id: personaId,
+        };
+        return updateStudent(targetStudentId, payload);
+      }
+
+      const payload: StudentPayload = {
+        ...basePayload,
+        persona: personaPayload,
+      };
+      return updateStudent(targetStudentId, payload);
+    },
     onSuccess: (student) => {
       updateStudentCollections(queryClient, student);
       if (studentId) {
@@ -438,25 +484,40 @@ export default function StudentForm() {
       personaPayload.ci_expedicion = result.data.persona.ci_expedicion;
     }
 
-    const payload: StudentPayload = {
+    const basePayload: BaseStudentPayload = {
       codigo_rude: result.data.codigo_rude,
-      persona: personaPayload,
     };
 
     if (trimmedAnioIngreso) {
-      payload.anio_ingreso = Number(trimmedAnioIngreso);
+      basePayload.anio_ingreso = Number(trimmedAnioIngreso);
     }
 
     if (selectedSituacion) {
-      payload.situacion = selectedSituacion;
+      basePayload.situacion = selectedSituacion;
     }
 
     if (selectedEstado) {
-      payload.estado = selectedEstado;
+      basePayload.estado = selectedEstado;
     }
 
     setFieldErrors({});
-    mutation.mutate(payload);
+
+    if (isEditing && studentId) {
+      mutation.mutate({
+        mode: 'update',
+        basePayload,
+        personaPayload,
+        studentId: Number(studentId),
+        personaId: currentStudent?.persona_id ?? null,
+      });
+      return;
+    }
+
+    mutation.mutate({
+      mode: 'create',
+      basePayload,
+      personaPayload,
+    });
   };
 
   const updateTopLevelField = (field: 'codigo_rude' | 'anio_ingreso') => (value: string) => {
