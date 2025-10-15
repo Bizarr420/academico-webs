@@ -4,6 +4,7 @@ const SESSION_TOKEN_STORAGE_KEY = 'session_token';
 const TOKEN_KEY_SET = new Set([
   'token',
   'accesstoken',
+  'access',
   'access_token',
   'sessiontoken',
   'session_token',
