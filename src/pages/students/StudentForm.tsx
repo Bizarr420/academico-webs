@@ -61,7 +61,7 @@ const codigoRudeSchema = z
   .string()
   .trim()
   .min(1, 'Ingresa el código RUDE del estudiante.')
-  .max(50, 'Máximo 50 caracteres.');
+  .max(30, 'Máximo 30 caracteres.');
 
 const personSchema = z.object({
   nombres: z.string().min(1, 'Ingresa los nombres').max(120, 'Máximo 120 caracteres'),
@@ -726,7 +726,7 @@ export default function StudentForm() {
               className="w-full border rounded px-3 py-2"
               value={form.codigo_rude}
               onChange={(event) => updateTopLevelField('codigo_rude')(event.target.value)}
-              maxLength={50}
+              maxLength={30}
             />
             {fieldErrors.codigo_rude && (
               <p className="text-sm text-red-600 mt-1">{fieldErrors.codigo_rude}</p>
