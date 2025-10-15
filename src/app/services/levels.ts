@@ -2,7 +2,7 @@ import api, { withTrailingSlash } from '@/app/services/api';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type { Level, PaginatedResponse } from '@/app/types';
 
-const LEVELS_ENDPOINT = '/niveles';
+const LEVELS_ENDPOINT = 'niveles';
 
 interface ApiLevel {
   id: number;

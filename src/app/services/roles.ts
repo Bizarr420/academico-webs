@@ -2,7 +2,7 @@ import api, { withTrailingSlash } from '@/app/services/api';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type { PaginatedResponse, RoleSummary } from '@/app/types';
 
-const ROLES_ENDPOINT = '/roles';
+const ROLES_ENDPOINT = 'roles';
 
 interface ApiRoleSummary {
   id: number;

@@ -4,7 +4,7 @@ import type { Paginated, PaginatedResponse, Student, StudentFilters, StudentPayl
 
 export const STUDENTS_PAGE_SIZE = 10;
 
-const STUDENTS_ENDPOINT = '/estudiantes';
+const STUDENTS_ENDPOINT = 'estudiantes';
 
 export async function getStudents(filters: StudentFilters): Promise<Paginated<Student>> {
   const {

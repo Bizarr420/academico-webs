@@ -2,7 +2,7 @@ import api, { withTrailingSlash } from '@/app/services/api';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type { Paginated, PaginatedResponse, Period, PeriodFilters } from '@/app/types';
 
-const PERIODS_ENDPOINT = '/periodos';
+const PERIODS_ENDPOINT = 'periodos';
 
 interface ApiPeriod {
   id: number;

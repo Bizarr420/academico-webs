@@ -10,7 +10,7 @@ import type {
 
 export const AUDIT_LOG_PAGE_SIZE = 10;
 
-const AUDIT_LOG_ENDPOINT = '/auditoria';
+const AUDIT_LOG_ENDPOINT = 'auditoria';
 
 const mapAuditEntry = (entry: ApiAuditLogEntry): AuditLogEntry => ({
   id: entry.id,

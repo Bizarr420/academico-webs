@@ -12,8 +12,8 @@ import type {
   StudentReportTrendPoint,
 } from '@/app/types';
 
-const STUDENT_REPORT_ENDPOINT = '/reportes/estudiante';
-const COURSE_REPORT_ENDPOINT = '/reportes/curso';
+const STUDENT_REPORT_ENDPOINT = 'reportes/estudiante';
+const COURSE_REPORT_ENDPOINT = 'reportes/curso';
 
 type ApiStudentReport =
   | StudentReportSummary
