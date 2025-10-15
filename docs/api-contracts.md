@@ -40,3 +40,11 @@
 
 > Todas las rutas heredan la configuración global del cliente HTTP: encabezado `Authorization` con token Bearer, reintentos automáticos y manejo de respuesta `401` redirigiendo a `/login`.
 
+## Estudiantes
+
+| Método | Endpoint | Descripción |
+| --- | --- | --- |
+| `POST` | `/api/v1/estudiantes` | Crea un estudiante. Cuerpo (`application/json`): `{ codigo_rude, anio_ingreso?, situacion, estado, persona_id?, persona? }`. Se debe enviar **solo** `persona_id` o `persona`. `codigo_rude` se recorta y admite hasta 30 caracteres. Si se omite `anio_ingreso` se asume el año actual. Respuesta `201`: devuelve `EstudianteOut` con la relación `persona` poblada. Errores: `400 codigo_rude ya existe`, `400 La persona ya está registrada como estudiante`, `404 Persona no encontrada`. |
+| `GET` | `/api/v1/estudiantes` | Lista estudiantes con filtros opcionales `persona_id`, `codigo_rude`, `estado` (`ACTIVO`, `INACTIVO`, `TODOS`), `limit` (1-500, por defecto 100), `offset`, `page`, `page_size` (1-500). Respuesta `200`: arreglo de `EstudianteOut` incluyendo la relación `persona`. |
+| `GET` | `/api/v1/estudiantes/{id}` | Obtiene un estudiante por ID. Respuesta `200`: `EstudianteOut`. Respuesta `404`: `{ "detail": "Estudiante no encontrado" }`. |
+

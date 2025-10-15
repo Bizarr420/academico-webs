@@ -186,6 +186,11 @@ export interface ApiPerson extends SoftDeleteMetadata {
   ci_complemento?: string | null;
   ci_expedicion?: string | null;
   correo?: string | null;
+  ci?: {
+    ci_numero?: string | null;
+    ci_complemento?: string | null;
+    ci_expedicion?: string | null;
+  } | null;
 }
 
 export interface Person extends SoftDeleteMetadata {
