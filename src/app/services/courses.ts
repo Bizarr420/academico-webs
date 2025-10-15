@@ -13,7 +13,7 @@ import { mapSubjectFromApi } from '@/app/services/subjects';
 
 export const COURSES_PAGE_SIZE = 10;
 
-const COURSES_ENDPOINT = '/cursos';
+const COURSES_ENDPOINT = 'cursos';
 
 interface ApiCourseParallel {
   id: number;

@@ -10,7 +10,7 @@ import type {
 
 export const SUBJECTS_PAGE_SIZE = 10;
 
-const SUBJECTS_ENDPOINT = '/materias';
+const SUBJECTS_ENDPOINT = 'materias';
 
 interface ApiSubject {
   id: number;

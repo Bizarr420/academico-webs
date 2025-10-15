@@ -9,7 +9,7 @@ import type {
   PaginatedResponse,
 } from '@/app/types';
 
-const ALERTS_ENDPOINT = '/alertas';
+const ALERTS_ENDPOINT = 'alertas';
 
 interface ApiAlert {
   id: number;

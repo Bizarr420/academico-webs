@@ -207,7 +207,7 @@ const collectRoles = (sources: unknown[]): Role[] => {
 
 const fetchPermissionsFallback = async (): Promise<(ApiView | View)[]> => {
   try {
-    const { data } = await api.get<unknown>('/me/permisos');
+    const { data } = await api.get<unknown>('me/permisos');
     return collectViews([data]);
   } catch (error) {
     console.warn('Failed to fetch permissions from fallback endpoint', error);
@@ -220,7 +220,7 @@ export const authLogin = async (username: string, password: string) => {
   formData.append('username', username);
   formData.append('password', password);
 
-  const response = await api.post('/auth/login', formData, {
+  const response = await api.post('auth/login', formData, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     withCredentials: true,
   });
@@ -230,7 +230,7 @@ export const authLogin = async (username: string, password: string) => {
 
 export const authLogout = async () => {
   try {
-    await api.post('/auth/logout');
+    await api.post('auth/logout');
   } catch (error) {
     if (import.meta.env.MODE !== 'production') {
       console.warn('auth/logout endpoint returned an error', error);
@@ -244,7 +244,7 @@ export const fetchCurrentUser = async (): Promise<ApiUser | null> => {
   let data: unknown;
 
   try {
-    ({ data } = await api.get<unknown>('/auth/me'));
+    ({ data } = await api.get<unknown>('auth/me'));
   } catch (error) {
     if (isAxiosError(error) && error.response?.status === 401) {
       return null;

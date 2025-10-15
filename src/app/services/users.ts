@@ -13,7 +13,7 @@ import { normalizeRole } from '@/app/utils/roles';
 
 export const USERS_PAGE_SIZE = 10;
 
-const USERS_ENDPOINT = '/usuarios';
+const USERS_ENDPOINT = 'usuarios';
 
 const normalizeUserRoles = (
   roles: (Role | string | null | undefined)[] | null | undefined,

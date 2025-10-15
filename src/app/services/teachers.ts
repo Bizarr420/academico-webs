@@ -4,7 +4,7 @@ import type { Paginated, PaginatedResponse, Teacher, TeacherFilters, TeacherPayl
 
 export const TEACHERS_PAGE_SIZE = 10;
 
-const TEACHERS_ENDPOINT = '/docentes';
+const TEACHERS_ENDPOINT = 'docentes';
 
 export async function getTeachers(filters: TeacherFilters): Promise<Paginated<Teacher>> {
   const { page, search, page_size = TEACHERS_PAGE_SIZE, estado, incluir_inactivos, activo } = filters;

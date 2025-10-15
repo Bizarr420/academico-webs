@@ -11,7 +11,7 @@ import type {
 
 export const PEOPLE_PAGE_SIZE = 10;
 
-const PEOPLE_ENDPOINT = '/personas';
+const PEOPLE_ENDPOINT = 'personas';
 
 const mapPerson = (person: ApiPerson): Person => ({
   id: person.id,

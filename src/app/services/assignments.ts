@@ -8,7 +8,7 @@ import type {
   PaginatedResponse,
 } from '@/app/types';
 
-const ASSIGNMENTS_ENDPOINT = '/asignaciones';
+const ASSIGNMENTS_ENDPOINT = 'asignaciones';
 
 interface ApiAssignment {
   id: number;

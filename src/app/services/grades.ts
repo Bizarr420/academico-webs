@@ -9,8 +9,8 @@ import type {
   GradeUnitaryResponse,
 } from '@/app/types';
 
-const UNITARY_GRADES_ENDPOINT = '/notas/unitarias';
-const MASSIVE_GRADES_ENDPOINT = '/notas/masivas';
+const UNITARY_GRADES_ENDPOINT = 'notas/unitarias';
+const MASSIVE_GRADES_ENDPOINT = 'notas/masivas';
 
 const normalizeResult = (result: GradeMassiveResult): GradeMassiveResult => ({
   ...result,
