@@ -1,4 +1,4 @@
-import api, { withTrailingSlash } from '@/app/services/api';
+import api, { withAuth, withTrailingSlash } from '@/app/services/api';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type {
   Paginated,
@@ -106,9 +106,10 @@ export async function getSubjects(filters: SubjectFilters): Promise<Paginated<Su
     params.incluir_inactivos = 1;
   }
 
-  const { data } = await api.get<PaginatedResponse<ApiSubject>>(withTrailingSlash(SUBJECTS_ENDPOINT), {
-    params,
-  });
+  const { data } = await api.get<PaginatedResponse<ApiSubject>>(
+    withTrailingSlash(SUBJECTS_ENDPOINT),
+    withAuth({ params }),
+  );
   const normalized = normalizePaginatedResponse(data);
   return {
     ...normalized,
@@ -117,41 +118,45 @@ export async function getSubjects(filters: SubjectFilters): Promise<Paginated<Su
 }
 
 export async function getSubject(id: number) {
-  const { data } = await api.get<ApiSubject>(`${SUBJECTS_ENDPOINT}/${id}`);
+  const { data } = await api.get<ApiSubject>(`${SUBJECTS_ENDPOINT}/${id}`, withAuth());
   return mapSubjectFromApi(data);
 }
 
 export async function createSubject(payload: SubjectPayload) {
   const body = mapSubjectPayloadToApi(payload);
-  const { data } = await api.post<ApiSubject>(withTrailingSlash(SUBJECTS_ENDPOINT), body);
+  const { data } = await api.post<ApiSubject>(withTrailingSlash(SUBJECTS_ENDPOINT), body, withAuth());
   return mapSubjectFromApi(data);
 }
 
 export async function updateSubject(id: number, payload: SubjectPayload) {
   const body = mapSubjectPayloadToApi(payload);
-  const { data } = await api.put<ApiSubject>(`${SUBJECTS_ENDPOINT}/${id}`, body);
+  const { data } = await api.put<ApiSubject>(`${SUBJECTS_ENDPOINT}/${id}`, body, withAuth());
   return mapSubjectFromApi(data);
 }
 
 export async function deleteSubject(id: number) {
-  await api.delete(`${SUBJECTS_ENDPOINT}/${id}`);
+  await api.delete(`${SUBJECTS_ENDPOINT}/${id}`, withAuth());
 }
 
 export async function restoreSubject(id: number) {
   const { data } = await api.post<ApiSubject>(
     `${withTrailingSlash(SUBJECTS_ENDPOINT)}${id}/restore`,
     undefined,
+    withAuth(),
   );
   return mapSubjectFromApi(data);
 }
 
 export async function getAllSubjects(): Promise<Subject[]> {
-  const { data } = await api.get<PaginatedResponse<ApiSubject>>(withTrailingSlash(SUBJECTS_ENDPOINT), {
-    params: {
-      page: 1,
-      page_size: 1000,
-    },
-  });
+  const { data } = await api.get<PaginatedResponse<ApiSubject>>(
+    withTrailingSlash(SUBJECTS_ENDPOINT),
+    withAuth({
+      params: {
+        page: 1,
+        page_size: 1000,
+      },
+    }),
+  );
   const normalized = normalizePaginatedResponse(data);
   return normalized.items.map((subject) => mapSubjectFromApi(subject as ApiSubject));
 }

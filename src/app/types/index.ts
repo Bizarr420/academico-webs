@@ -1,3 +1,7 @@
+export interface CourseParallelPayload {
+  curso_id: number;
+  nombre: string;
+}
 export type Role = 'admin' | 'docente' | 'padre' | (string & {});
 
 export type ApiRole =
@@ -38,6 +42,7 @@ export interface RoleSummary {
   id: number;
   nombre: string;
   codigo: string;
+  estado: 'ACTIVO' | 'INACTIVO';
 }
 
 export interface ApiView {
@@ -221,12 +226,29 @@ export interface PersonPayload {
 
 export type PersonFilters = PaginationFilters & ActivableFilters;
 
+export interface TeacherAssignmentParalelo {
+  id: number;
+  etiqueta: string;
+  nombre: string;
+}
+
+export interface TeacherAssignment {
+  id: number;
+  gestion_id: number;
+  materia: Subject;
+  curso: Course;
+  paralelo: TeacherAssignmentParalelo;
+}
+
 export interface Teacher extends SoftDeleteMetadata {
   id: number;
   persona_id: number;
   titulo: string | null;
   profesion: string | null;
   persona?: Person | null;
+  materias?: Subject[];
+  cursos?: Course[];
+  asignaciones?: TeacherAssignment[];
 }
 
 export type TeacherPayload = PersonAssociationPayload & {
@@ -261,7 +283,6 @@ export interface Course extends SoftDeleteMetadata {
 
 export interface CoursePayload {
   nombre: string;
-  etiqueta: string;
   nivel_id: number;
   grado?: number | null;
 }
@@ -300,6 +321,7 @@ export interface ManagedUser extends SoftDeleteMetadata {
   email?: string | null;
   role: Role | null;
   roles: Role[];
+  rol?: RoleSummary | null;
   persona?: Person | null;
   persona_id?: number | null;
   rol_id?: number | null;
@@ -310,16 +332,18 @@ export interface ApiManagedUser extends Omit<ManagedUser, 'role' | 'roles'> {
   roles?: ApiRole[] | null;
 }
 
-export interface UserPayload {
+export type UserPayload = {
   username: string;
-  persona_id: number;
   email?: string;
   password?: string;
   rol_id: number;
-}
+  persona_id?: number;
+  persona?: PersonPayload;
+};
 
 export interface UserFilters extends PaginationFilters, ActivableFilters {
   role?: Role | null;
+  rol_id?: number;
 }
 
 export interface ApiAuditLogEntry {

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import ConfirmModal from '@/app/components/ConfirmModal';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import StatusBadge from '@/app/components/StatusBadge';
 import { formatDateTime } from '@/app/utils/dates';
 import { resolveStatus } from '@/app/utils/status';
-import { deleteStudent, getStudents, restoreStudent, STUDENTS_PAGE_SIZE } from '@/app/services/students';
+import { getStudents, setStudentStatus, STUDENTS_PAGE_SIZE } from '@/app/services/students';
 import type { Student } from '@/app/types';
 import StudentSummary from '@/pages/students/components/StudentSummary';
 
@@ -23,9 +24,10 @@ export default function StudentsList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [showInactive, setShowInactive] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilterOption>('ACTIVO');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [confirmDeactivateId, setConfirmDeactivateId] = useState<number | null>(null);
+  const [confirmRestoreId, setConfirmRestoreId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -37,21 +39,15 @@ export default function StudentsList() {
     return () => window.clearTimeout(timeout);
   }, [search]);
 
-  useEffect(() => {
-    if (!showInactive && statusFilter !== 'ACTIVO') {
-      setStatusFilter('ACTIVO');
-    } else if (showInactive && statusFilter === 'ACTIVO') {
-      setStatusFilter('TODOS');
-    }
-  }, [showInactive, statusFilter]);
 
-  const includeInactive = showInactive || statusFilter !== 'ACTIVO';
+
+  const includeInactive = statusFilter !== 'ACTIVO';
   const estadoFilter = statusFilter === 'TODOS' ? undefined : statusFilter;
 
   const codigoRudeFilter = debouncedSearch && /^[0-9]+$/u.test(debouncedSearch) ? debouncedSearch : undefined;
 
   const { data, isLoading, isError, isFetching } = useQuery({
-    queryKey: ['students', page, debouncedSearch, statusFilter, showInactive],
+  queryKey: ['students', page, debouncedSearch, statusFilter],
     queryFn: async () =>
       getStudents({
         page,
@@ -73,8 +69,9 @@ export default function StudentsList() {
   const reachedEndByItems = total === 0 && students.length < pageSize;
   const disableNext = isFetching || reachedEndByTotal || reachedEndByItems;
 
+
   const deactivateMutation = useMutation({
-    mutationFn: async (id: number) => deleteStudent(id),
+    mutationFn: async (id: number) => setStudentStatus(id, 'INACTIVO'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       setFeedback({
@@ -88,7 +85,7 @@ export default function StudentsList() {
   });
 
   const restoreMutation = useMutation({
-    mutationFn: async (id: number) => restoreStudent(id),
+    mutationFn: async (id: number) => setStudentStatus(id, 'ACTIVO'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       setFeedback({ type: 'success', message: 'Registro restaurado y activo.' });
@@ -99,23 +96,67 @@ export default function StudentsList() {
   });
 
   const handleDeactivate = (id: number) => {
-    const confirmed = window.confirm(
-      '¿Desactivar registro? Este registro no se eliminará y podrás restaurarlo desde “Mostrar inactivos”.',
-    );
-    if (!confirmed) {
-      return;
-    }
-    setFeedback(null);
-    deactivateMutation.mutate(id);
+    setConfirmDeactivateId(id);
   };
 
+  const handleConfirmDeactivate = () => {
+    if (confirmDeactivateId !== null) {
+      setFeedback(null);
+      deactivateMutation.mutate(confirmDeactivateId);
+      setConfirmDeactivateId(null);
+    }
+  };
+
+  const handleCancelDeactivate = () => {
+    setConfirmDeactivateId(null);
+  };
+      <ConfirmModal
+        open={confirmDeactivateId !== null}
+        title="Desactivar estudiante"
+        message="¿Desactivar registro? Este registro no se eliminará y podrás restaurarlo desde el filtro de estado."
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmDeactivate}
+        onCancel={handleCancelDeactivate}
+      />
+
   const handleRestore = (id: number) => {
-    setFeedback(null);
-    restoreMutation.mutate(id);
+    setConfirmRestoreId(id);
+  };
+
+  const handleConfirmRestore = () => {
+    if (confirmRestoreId !== null) {
+      setFeedback(null);
+      restoreMutation.mutate(confirmRestoreId);
+      setConfirmRestoreId(null);
+    }
+  };
+
+  const handleCancelRestore = () => {
+    setConfirmRestoreId(null);
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow p-4">
+    <>
+      <ConfirmModal
+        open={confirmDeactivateId !== null}
+        title="Desactivar estudiante"
+        message="¿Desactivar registro? Este registro no se eliminará y podrás restaurarlo desde el filtro de estado."
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmDeactivate}
+        onCancel={handleCancelDeactivate}
+      />
+      <ConfirmModal
+        open={confirmRestoreId !== null}
+        title="Restaurar estudiante"
+        message="¿Restaurar este estudiante? El registro volverá a estar activo."
+        confirmText="Restaurar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmRestore}
+        onCancel={handleCancelRestore}
+      />
+      <div className="bg-white rounded-2xl shadow p-4">
       <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <h1 className="text-lg font-semibold">Estudiantes</h1>
         <Link to="/estudiantes/nuevo" className="px-3 py-2 rounded bg-gray-900 text-white">
@@ -137,39 +178,24 @@ export default function StudentsList() {
           />
         </div>
         <div className="md:col-span-1 flex flex-col gap-2">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              className="rounded border-gray-300"
-              checked={showInactive}
-              onChange={(event) => {
-                setShowInactive(event.target.checked);
-                setPage(1);
-              }}
-            />
-            Mostrar inactivos
+          <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="students-status-filter">
+            Estado
           </label>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="students-status-filter">
-              Estado
-            </label>
-            <select
-              id="students-status-filter"
-              className="border rounded px-3 py-2 w-full"
-              value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value as StatusFilterOption);
-                setPage(1);
-              }}
-              disabled={!showInactive}
-            >
-              {(['TODOS', 'ACTIVO', 'INACTIVO'] as StatusFilterOption[]).map((option) => (
-                <option key={option} value={option}>
-                  {STATUS_LABELS[option]}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            id="students-status-filter"
+            className="border rounded px-3 py-2 w-full"
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as StatusFilterOption);
+              setPage(1);
+            }}
+          >
+            {(['TODOS', 'ACTIVO', 'INACTIVO'] as StatusFilterOption[]).map((option) => (
+              <option key={option} value={option}>
+                {STATUS_LABELS[option]}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -237,14 +263,16 @@ export default function StudentsList() {
                         Restaurar
                       </button>
                     )}
-                    <button
-                      type="button"
-                      className="text-sm text-red-600 hover:underline disabled:opacity-50"
-                      onClick={() => handleDeactivate(student.id)}
-                      disabled={deactivateMutation.isPending}
-                    >
-                      Desactivar
-                    </button>
+                    {!isInactive && (
+                      <button
+                        type="button"
+                        className="text-sm text-red-600 hover:underline disabled:opacity-50"
+                        onClick={() => handleDeactivate(student.id)}
+                        disabled={deactivateMutation.isPending}
+                      >
+                        Desactivar
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -271,5 +299,5 @@ export default function StudentsList() {
         </>
       )}
     </div>
-  );
+  </>);
 }

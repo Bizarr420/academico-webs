@@ -44,45 +44,55 @@ const mapUser = (user: ApiManagedUser): ManagedUser => {
     ...user,
     role: normalizedRoles[0] ?? normalizeRole(user.role),
     roles: normalizedRoles,
+    rol: (user as any).rol ?? null,
     rol_id: user.rol_id ?? null,
   };
 };
 
 export async function getUsers(filters: UserFilters): Promise<Paginated<ManagedUser>> {
+
   const {
-    page,
+    page = 1,
     search,
     page_size = USERS_PAGE_SIZE,
     role,
     estado,
-    incluir_inactivos,
-    activo,
+    rol_id,
+    ...rest
   } = filters;
+
   const params: Record<string, unknown> = {
-    page,
-    page_size,
+    offset: (page - 1) * page_size,
+    limit: page_size,
   };
 
   if (typeof search === 'string' && search.trim().length > 0) {
     params.search = search.trim();
   }
 
-  if (typeof role === 'string' && role.trim().length > 0) {
-    params.role = role;
+  if (typeof rol_id === 'number' && !isNaN(rol_id)) {
+    params.rol_id = rol_id;
+  }
+
+  if ((typeof role === 'string' && role.trim().length > 0) || typeof role === 'number') {
+    const parsedRole = typeof role === 'number' ? role : parseInt(role, 10);
+    if (!isNaN(parsedRole)) {
+      params.rol_id = parsedRole;
+    }
   }
 
   if (typeof estado === 'string' && estado.trim().length > 0) {
-    params.estado = estado.trim();
+    params.estado = estado.trim().toUpperCase();
   }
 
-  if (typeof activo === 'boolean') {
-    params.activo = activo ? 1 : 0;
-  }
+  // Incluir cualquier otro filtro adicional
+  Object.entries(rest).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params[key] = value;
+    }
+  });
 
-  if (incluir_inactivos) {
-    params.incluir_inactivos = 1;
-  }
-
+  console.log('getUsers params:', params);
   const { data } = await api.get<PaginatedResponse<ApiManagedUser>>(withTrailingSlash(USERS_ENDPOINT), {
     params,
   });
@@ -104,32 +114,51 @@ export async function createUser(payload: UserPayload) {
 }
 
 export async function updateUser(id: number, payload: UserPayload) {
-  const body: UserPayload = {
-    username: payload.username,
-    persona_id: payload.persona_id,
-    rol_id: payload.rol_id,
+  let body: UserPayload = {
+    ...payload,
   };
-
-  if (payload.email !== undefined) {
-    body.email = payload.email;
+  
+  // Solo incluir password si se proporciona uno nuevo
+  if (!body.password) {
+    delete body.password;
   }
 
-  if (payload.password) {
-    body.password = payload.password;
+  // Manejar la actualización de persona
+  if (payload.persona_id !== undefined) {
+    body = {
+      ...body,
+      persona_id: payload.persona_id,
+      persona: undefined // Eliminar persona si se proporciona persona_id
+    };
+  } else if (payload.persona) {
+    body = {
+      ...body,
+      persona: payload.persona,
+      persona_id: undefined // Eliminar persona_id si se proporciona persona
+    };
   }
 
   const { data } = await api.patch<ApiManagedUser>(`${USERS_ENDPOINT}/${id}`, body);
   return mapUser(data);
 }
 
-export async function deleteUser(id: number) {
-  await api.delete(`${USERS_ENDPOINT}/${id}`);
+export async function deactivateUser(id: number) {
+  try {
+    const { data } = await api.patch<ApiManagedUser>(`${USERS_ENDPOINT}/${id}/desactivar`);
+    return mapUser(data);
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const { data } = await api.patch<ApiManagedUser>(`${USERS_ENDPOINT}/desactivar`,
+        { usuario_id: id },
+        { headers: { 'Content-Type': 'application/json' } },
+      );
+      return mapUser(data);
+    }
+    throw err;
+  }
 }
 
-export async function restoreUser(id: number) {
-  const { data } = await api.post<ApiManagedUser>(
-    `${withTrailingSlash(USERS_ENDPOINT)}${id}/restore`,
-    undefined,
-  );
+export async function activateUser(id: number) {
+  const { data } = await api.patch<ApiManagedUser>(`${USERS_ENDPOINT}/${id}/activar`);
   return mapUser(data);
 }

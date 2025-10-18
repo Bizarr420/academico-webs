@@ -57,6 +57,9 @@ export async function getStudents(filters: StudentFilters): Promise<Paginated<St
 
   if (typeof search === 'string' && search.trim().length > 0) {
     params.search = search.trim();
+  } else if (typeof codigo_rude !== 'string' || codigo_rude.trim().length === 0) {
+    // Si no hay código rude, pasar search aunque sea numérico para búsqueda por persona
+    params.search = search;
   }
 
   if (typeof codigo_rude === 'string' && codigo_rude.trim().length > 0) {
@@ -95,24 +98,24 @@ export async function createStudent(payload: StudentPayload) {
   return mapApiStudent(data);
 }
 
+
 export async function getStudent(id: number) {
-  const { data } = await api.get<ApiStudent>(`${withTrailingSlash(STUDENTS_ENDPOINT)}${id}`, withAuth());
+  const { data } = await api.get<ApiStudent>(`${STUDENTS_ENDPOINT}/${id}`, withAuth());
   return mapApiStudent(data);
 }
 
+
+// Edición completa (PUT)
 export async function updateStudent(id: number, payload: StudentPayload) {
-  const { data } = await api.patch<ApiStudent>(`${withTrailingSlash(STUDENTS_ENDPOINT)}${id}`, payload, withAuth());
+  const { data } = await api.put<ApiStudent>(`${STUDENTS_ENDPOINT}/${id}`, payload, withAuth());
   return mapApiStudent(data);
 }
 
-export async function deleteStudent(id: number) {
-  await api.delete(`${withTrailingSlash(STUDENTS_ENDPOINT)}${id}`, withAuth());
-}
-
-export async function restoreStudent(id: number) {
-  const { data } = await api.post<ApiStudent>(
-    `${withTrailingSlash(STUDENTS_ENDPOINT)}${id}/restore`,
-    undefined,
+// Cambiar estado (desactivar o restaurar)
+export async function setStudentStatus(id: number, estado: 'ACTIVO' | 'INACTIVO') {
+  const { data } = await api.patch<ApiStudent>(
+    `${withTrailingSlash(STUDENTS_ENDPOINT)}${id}/estado`,
+    { estado },
     withAuth(),
   );
   return mapApiStudent(data);

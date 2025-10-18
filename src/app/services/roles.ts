@@ -8,12 +8,14 @@ interface ApiRoleSummary {
   id: number;
   nombre: string;
   codigo: string;
+  estado: 'ACTIVO' | 'INACTIVO';
 }
 
 const mapRoleSummary = (role: ApiRoleSummary): RoleSummary => ({
   id: role.id,
   nombre: role.nombre,
   codigo: role.codigo,
+  estado: role.estado,
 });
 
 export async function getAllRoles(): Promise<RoleSummary[]> {

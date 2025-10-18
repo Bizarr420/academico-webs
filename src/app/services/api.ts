@@ -205,12 +205,27 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
-      setSessionToken(null);
-      localStorage.removeItem('user');
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.replace('/login');
+    try {
+      const status = error?.response?.status;
+      const url: string = error?.config?.url ?? '';
+      // Solo forzar logout cuando el 401 viene de validar sesión
+      // para evitar cerrar sesión por fallos puntuales de otras rutas.
+      if (status === 401) {
+        if (/\bauth\/me\b/i.test(url)) {
+          setSessionToken(null);
+          localStorage.removeItem('user');
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            window.location.replace('/login');
+          }
+        } else if (typeof console !== 'undefined') {
+          // Deja rastro en consola para diagnóstico pero no cierra sesión.
+          // El componente llamante podrá manejar el error y mostrar feedback.
+          // eslint-disable-next-line no-console
+          console.warn('API 401 (sin logout):', url || error?.config?.baseURL || '', error?.response?.data);
+        }
       }
+    } catch (_) {
+      // no-op
     }
     return Promise.reject(error);
   },

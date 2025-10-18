@@ -24,6 +24,8 @@ import AssignmentsPage from '@/pages/assignments/AssignmentsPage';
 import GradesPage from '@/pages/grades/GradesPage';
 import ReportsPage from '@/pages/reports/ReportsPage';
 import AlertsPage from '@/pages/alerts/AlertsPage';
+import CursosDemo from '@/pages/CursosDemo';
+import SubjectQuickCreate from '@/pages/subjects/SubjectQuickCreate';
 
 export default function AppRouter() {
   const { isAuthenticated } = useAuth();
@@ -113,6 +115,18 @@ export default function AppRouter() {
             element={
               <RequireView code="CURSOS">
                 <CoursesList />
+              </RequireView>
+            }
+          />
+          <Route
+            path="cursos/demo"
+            element={<CursosDemo />}
+          />
+          <Route
+            path="cursos/demo/nueva-materia"
+            element={
+              <RequireView code="MATERIAS">
+                <SubjectQuickCreate />
               </RequireView>
             }
           />

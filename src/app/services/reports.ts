@@ -1,4 +1,4 @@
-import api, { withTrailingSlash } from '@/app/services/api';
+import api, { withAuth, withTrailingSlash } from '@/app/services/api';
 import type {
   CourseReportAnalytics,
   CourseReportFilters,
@@ -158,17 +158,19 @@ const normalizeCourseReport = (data: ApiCourseReport): CourseReportAnalytics => 
 };
 
 export async function getStudentReport(filters: StudentReportFilters) {
-  const { data } = await api.get<ApiStudentReport>(withTrailingSlash(STUDENT_REPORT_ENDPOINT), {
-    params: filters,
-  });
+  const { data } = await api.get<ApiStudentReport>(
+    withTrailingSlash(STUDENT_REPORT_ENDPOINT),
+    withAuth({ params: filters }),
+  );
 
   return normalizeStudentReport(data);
 }
 
 export async function getCourseReport(filters: CourseReportFilters) {
-  const { data } = await api.get<ApiCourseReport>(withTrailingSlash(COURSE_REPORT_ENDPOINT), {
-    params: filters,
-  });
+  const { data } = await api.get<ApiCourseReport>(
+    withTrailingSlash(COURSE_REPORT_ENDPOINT),
+    withAuth({ params: filters }),
+  );
 
   return normalizeCourseReport(data);
 }

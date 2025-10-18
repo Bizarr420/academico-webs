@@ -1,4 +1,4 @@
-import api, { withTrailingSlash } from '@/app/services/api';
+import api, { withAuth, withTrailingSlash } from '@/app/services/api';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type {
   Alert,
@@ -94,9 +94,10 @@ export async function getAlerts(filters: AlertFilters): Promise<AlertCollection>
     params.search = search.trim();
   }
 
-  const { data } = await api.get<ApiAlertsResponse>(withTrailingSlash(ALERTS_ENDPOINT), {
-    params,
-  });
+  const { data } = await api.get<ApiAlertsResponse>(
+    withTrailingSlash(ALERTS_ENDPOINT),
+    withAuth({ params }),
+  );
 
   const normalized = normalizePaginatedResponse(data);
   const summary = normalizeSummary((data as ApiAlertsResponse).resumen);
@@ -135,7 +136,11 @@ export async function updateAlertStatus(id: number, payload: AlertStatusPayload)
     body.comentario = comment;
   }
 
-  const { data } = await api.post<ApiAlert>(`${withTrailingSlash(ALERTS_ENDPOINT)}${id}/estado`, body);
+  const { data } = await api.post<ApiAlert>(
+    `${withTrailingSlash(ALERTS_ENDPOINT)}${id}/estado`,
+    body,
+    withAuth(),
+  );
   return mapAlert(data);
 }
 

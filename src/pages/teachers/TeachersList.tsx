@@ -198,11 +198,11 @@ export default function TeachersList() {
             <thead>
               <tr className="text-left border-b">
                 <th className="py-2">Persona</th>
-                <th>ID Persona</th>
                 <th>Título</th>
-                <th>Profesión</th>
+                <th>Materias</th>
+                <th>Cursos</th>
+                <th>Asignaciones</th>
                 <th>Estado</th>
-                <th>Desactivado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -223,18 +223,36 @@ export default function TeachersList() {
                 return (
                   <tr key={teacher.id} className="border-b last:border-0">
                     <td className="py-2">{displayName}</td>
-                    <td>{teacher.persona_id}</td>
                     <td>{teacher.titulo ?? '-'}</td>
-                    <td>{teacher.profesion ?? '-'}</td>
                     <td>
-                      <StatusBadge estado={teacher.estado ?? undefined} activo={teacher.activo ?? undefined} />
+                      {teacher.materias && teacher.materias.length > 0
+                        ? teacher.materias.map((m) => m.nombre).join(', ')
+                        : <span className="text-gray-400 italic">No tiene asignada materia</span>}
                     </td>
                     <td>
-                      {teacher.eliminado_en ? (
-                        <span title="fecha de desactivación">{deletedAt}</span>
+                      {teacher.cursos && teacher.cursos.length > 0
+                        ? teacher.cursos.map((c) => c.nombre).join(', ')
+                        : <span className="text-gray-400 italic">No tiene asignado curso</span>}
+                    </td>
+                    <td>
+                      {teacher.asignaciones && teacher.asignaciones.length > 0 ? (
+                        <ul className="list-disc pl-4">
+                          {teacher.asignaciones.map((a) => (
+                            <li key={a.id}>
+                              <span className="font-semibold">{a.materia.nombre}</span> ({a.materia.codigo})<br />
+                              <span>
+                                Curso: {a.curso.nombre} [{a.curso.etiqueta}]<br />
+                                Paralelo: {a.paralelo.etiqueta}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       ) : (
-                        '—'
+                        <span className="text-gray-400 italic">Sin asignaciones</span>
                       )}
+                    </td>
+                    <td>
+                      <StatusBadge estado={teacher.estado ?? undefined} activo={teacher.activo ?? undefined} />
                     </td>
                     <td>
                       <div className="flex flex-wrap items-center gap-2">

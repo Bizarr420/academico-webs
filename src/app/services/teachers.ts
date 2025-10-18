@@ -29,7 +29,7 @@ export async function getTeachers(filters: TeacherFilters): Promise<Paginated<Te
     params.incluir_inactivos = 1;
   }
 
-  const { data } = await api.get<PaginatedResponse<Teacher>>(TEACHERS_ENDPOINT, withAuth({ params }));
+  const { data } = await api.get<PaginatedResponse<Teacher>>(`${TEACHERS_ENDPOINT}/`, withAuth({ params }));
   return normalizePaginatedResponse(data);
 }
 

@@ -1,4 +1,4 @@
-import api, { withTrailingSlash } from '@/app/services/api';
+import api, { withAuth, withTrailingSlash } from '@/app/services/api';
 import type {
   GradeMassiveDraft,
   GradeMassiveMapping,
@@ -54,15 +54,16 @@ export async function getUnitaryGrades(filters: GradeUnitaryFilters) {
     params.paralelo_id = filters.paralelo_id;
   }
 
-  const { data } = await api.get<GradeUnitaryResponse>(withTrailingSlash(UNITARY_GRADES_ENDPOINT), {
-    params,
-  });
+  const { data } = await api.get<GradeUnitaryResponse>(
+    withTrailingSlash(UNITARY_GRADES_ENDPOINT),
+    withAuth({ params }),
+  );
 
   return data;
 }
 
 export async function saveUnitaryGrades(payload: GradeUnitaryPayload) {
-  const { data } = await api.post<GradeUnitaryResponse>(withTrailingSlash(UNITARY_GRADES_ENDPOINT), payload);
+  const { data } = await api.post<GradeUnitaryResponse>(withTrailingSlash(UNITARY_GRADES_ENDPOINT), payload, withAuth());
   return data;
 }
 
@@ -84,9 +85,11 @@ export async function startMassiveGradeUpload(payload: StartMassivePayload) {
   }
   formData.append('file', payload.file);
 
-  const { data } = await api.post<GradeMassiveDraft>(withTrailingSlash(MASSIVE_GRADES_ENDPOINT), formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const { data } = await api.post<GradeMassiveDraft>(
+    withTrailingSlash(MASSIVE_GRADES_ENDPOINT),
+    formData,
+    withAuth({ headers: { 'Content-Type': 'multipart/form-data' } }),
+  );
 
   return data;
 }
@@ -95,6 +98,7 @@ export async function previewMassiveGradeUpload(uploadId: string, mapping: Grade
   const { data } = await api.post<GradeMassivePreview>(
     `${withTrailingSlash(MASSIVE_GRADES_ENDPOINT)}${uploadId}/preview`,
     mapping,
+    withAuth(),
   );
 
   return normalizePreview(data);
@@ -103,6 +107,8 @@ export async function previewMassiveGradeUpload(uploadId: string, mapping: Grade
 export async function confirmMassiveGradeUpload(uploadId: string) {
   const { data } = await api.post<GradeMassiveResult>(
     `${withTrailingSlash(MASSIVE_GRADES_ENDPOINT)}${uploadId}/confirm`,
+    undefined,
+    withAuth(),
   );
 
   return normalizeResult(data);

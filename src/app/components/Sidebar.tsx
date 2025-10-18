@@ -187,6 +187,7 @@ const navigationItems: NavItem[] = [
   { to: '/docentes', label: 'Docentes', icon: IconUsers, permission: 'DOCENTES' },
   { to: '/personas', label: 'Personas', icon: IconId, permission: ['PERSONAS', 'USUARIOS'] },
   { to: '/cursos', label: 'Cursos', icon: IconBook, permission: 'CURSOS' },
+  { to: '/cursos/demo', label: 'Cursos Demo', icon: IconBook, permission: null },
   { to: '/materias', label: 'Materias', icon: IconStack, permission: 'MATERIAS' },
   { to: '/usuarios', label: 'Usuarios', icon: IconShield, permission: 'USUARIOS' },
   { to: '/asignaciones', label: 'Asignaciones', icon: IconClipboard, permission: 'ASIGNACIONES' },

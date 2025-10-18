@@ -31,7 +31,8 @@ interface ApiCourse {
   nombre: string;
   etiqueta?: string | null;
   nivel_id?: number | null;
-  nivel?: string | null;
+  // puede venir como string o como objeto { id, nombre }
+  nivel?: unknown;
   grado?: number | null;
   paralelos?: ApiCourseParallel[] | null;
   materias?: ApiCourseSubject[] | null;
@@ -51,7 +52,12 @@ const mapCourse = (course: ApiCourse): Course => ({
   nombre: course.nombre,
   etiqueta: course.etiqueta ?? null,
   nivel_id: course.nivel_id ?? null,
-  nivel: course.nivel ?? null,
+  nivel:
+    typeof (course as any).nivel === 'string'
+      ? ((course as any).nivel as string)
+      : typeof (course as any).nivel === 'object' && (course as any).nivel !== null
+        ? ((course as any).nivel as { nombre?: string | null }).nombre ?? null
+        : null,
   grado: course.grado ?? null,
   paralelos: Array.isArray(course.paralelos)
     ? course.paralelos.map((parallel) => mapCourseParallel(parallel))

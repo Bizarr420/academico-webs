@@ -193,12 +193,9 @@ export default function CoursesList() {
             <thead>
               <tr className="text-left border-b">
                 <th className="py-2">Curso</th>
-                <th>Etiqueta / paralelos</th>
+                <th>Paralelos</th>
                 <th>Nivel</th>
-                <th>Grado</th>
-                <th>Materias</th>
                 <th>Estado</th>
-                <th>Desactivado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -209,10 +206,9 @@ export default function CoursesList() {
                   materias.length > 0 ? materias.map((subject) => subject.nombre).join(', ') : '-';
                 const paralelos = course.paralelos ?? [];
                 const paralelosLabel = paralelos
-                  .map((parallel) => parallel.nombre || parallel.etiqueta || '')
-                  .filter((label) => label.trim().length > 0);
-                const paraleloDisplay =
-                  paralelosLabel.length > 0 ? paralelosLabel.join(', ') : course.etiqueta || '-';
+                  .map((parallel) => parallel.nombre)
+                  .filter((label) => label && label.trim().length > 0);
+                const paraleloDisplay = paralelosLabel.length > 0 ? paralelosLabel.join(', ') : '-';
                 const status = resolveStatus({ estado: course.estado ?? undefined, activo: course.activo });
                 const isInactive = status.isActive === false;
                 const deletedAt = course.eliminado_en ? formatDateTime(course.eliminado_en) : '—';
@@ -221,20 +217,9 @@ export default function CoursesList() {
                   <tr key={course.id} className="border-b last:border-0">
                     <td className="py-2">{course.nombre}</td>
                     <td>{paraleloDisplay}</td>
-                    <td>{course.nivel || '-'}</td>
-                    <td>{course.grado ?? '-'}</td>
-                    <td className="max-w-xs truncate" title={materiasLabel}>
-                      {materias.length > 0 ? `${materias.length} materias` : '-'}
-                    </td>
+                    <td>{course.nivel?.nombre || '-'}</td>
                     <td>
                       <StatusBadge estado={course.estado ?? undefined} activo={course.activo ?? undefined} />
-                    </td>
-                    <td>
-                      {course.eliminado_en ? (
-                        <span title="fecha de desactivación">{deletedAt}</span>
-                      ) : (
-                        '—'
-                      )}
                     </td>
                     <td>
                       <div className="flex flex-wrap items-center gap-2">

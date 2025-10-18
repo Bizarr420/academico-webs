@@ -1,4 +1,4 @@
-import api, { withTrailingSlash } from '@/app/services/api';
+import api, { withAuth, withTrailingSlash } from '@/app/services/api';
 import { normalizePaginatedResponse } from '@/app/services/pagination';
 import type {
   Assignment,
@@ -132,9 +132,10 @@ export async function getAssignments(filters: AssignmentFilters): Promise<Pagina
     params.incluir_inactivos = incluir_inactivos;
   }
 
-  const { data } = await api.get<PaginatedResponse<ApiAssignment>>(withTrailingSlash(ASSIGNMENTS_ENDPOINT), {
-    params,
-  });
+  const { data } = await api.get<PaginatedResponse<ApiAssignment>>(
+    withTrailingSlash(ASSIGNMENTS_ENDPOINT),
+    withAuth({ params }),
+  );
 
   const normalized = normalizePaginatedResponse(data);
   return {
@@ -145,17 +146,17 @@ export async function getAssignments(filters: AssignmentFilters): Promise<Pagina
 
 export async function createAssignment(payload: AssignmentPayload) {
   const body = mapPayload(payload);
-  const { data } = await api.post<ApiAssignment>(withTrailingSlash(ASSIGNMENTS_ENDPOINT), body);
+  const { data } = await api.post<ApiAssignment>(withTrailingSlash(ASSIGNMENTS_ENDPOINT), body, withAuth());
   return mapAssignment(data);
 }
 
 export async function updateAssignment(id: number, payload: AssignmentPayload) {
   const body = mapPayload(payload);
-  const { data } = await api.put<ApiAssignment>(`${withTrailingSlash(ASSIGNMENTS_ENDPOINT)}${id}`, body);
+  const { data } = await api.put<ApiAssignment>(`${withTrailingSlash(ASSIGNMENTS_ENDPOINT)}${id}`, body, withAuth());
   return mapAssignment(data);
 }
 
 export async function deleteAssignment(id: number) {
-  await api.delete(`${withTrailingSlash(ASSIGNMENTS_ENDPOINT)}${id}`);
+  await api.delete(`${withTrailingSlash(ASSIGNMENTS_ENDPOINT)}${id}`, withAuth());
 }
 

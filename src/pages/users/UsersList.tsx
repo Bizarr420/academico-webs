@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-
 import StatusBadge from '@/app/components/StatusBadge';
-import { formatDateTime } from '@/app/utils/dates';
+// import { formatDateTime } from '@/app/utils/dates';
 import { resolveStatus } from '@/app/utils/status';
-import { deleteUser, getUsers, restoreUser, USERS_PAGE_SIZE } from '@/app/services/users';
-import { resolveRoleLabel } from '@/app/utils/roles';
+import { deactivateUser, activateUser, getUsers, USERS_PAGE_SIZE } from '@/app/services/users';
+import ConfirmModal from '@/app/components/ConfirmModal';
+import { getAllRoles } from '@/app/services/roles';
 import type { ManagedUser } from '@/app/types';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -20,23 +20,24 @@ const STATUS_LABELS: Record<StatusFilterOption, string> = {
 };
 
 const formatRoleLabel = (user: ManagedUser) => {
-  if (Array.isArray(user.roles) && user.roles.length > 0) {
-    const labels = user.roles
-      .map((role) => resolveRoleLabel(role))
-      .filter((label): label is string => Boolean(label && label.trim()));
-    if (labels.length > 0) {
-      return labels.join(', ');
-    }
+  if (user.rol && typeof user.rol === 'object' && user.rol.nombre) {
+    return user.rol.nombre;
   }
-
-  return resolveRoleLabel(user.role) || 'Sin rol';
+  return 'Sin rol';
 };
 
 export default function UsersList() {
+  const [confirmDeactivateId, setConfirmDeactivateId] = useState<number | null>(null);
+  const [confirmRestoreId, setConfirmRestoreId] = useState<number | null>(null);
+  const [roleFilter, setRoleFilter] = useState<number | ''>('');
+  const rolesQuery = useQuery({
+    queryKey: ['roles', 'all'],
+    queryFn: async () => getAllRoles(),
+  });
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [showInactive, setShowInactive] = useState(false);
+  // Eliminado showInactive, ya no se usa
   const [statusFilter, setStatusFilter] = useState<StatusFilterOption>('ACTIVO');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const queryClient = useQueryClient();
@@ -50,27 +51,27 @@ export default function UsersList() {
     return () => window.clearTimeout(timeout);
   }, [search]);
 
-  useEffect(() => {
-    if (!showInactive && statusFilter !== 'ACTIVO') {
-      setStatusFilter('ACTIVO');
-    } else if (showInactive && statusFilter === 'ACTIVO') {
-      setStatusFilter('TODOS');
-    }
-  }, [showInactive, statusFilter]);
+  // Eliminado efecto relacionado con showInactive
 
-  const includeInactive = showInactive || statusFilter !== 'ACTIVO';
+  const includeInactive = statusFilter !== 'ACTIVO';
   const estadoFilter = statusFilter === 'TODOS' ? undefined : statusFilter;
 
   const { data, isLoading, isError, isFetching } = useQuery({
-    queryKey: ['users', page, debouncedSearch, statusFilter, showInactive],
-    queryFn: async () =>
-      getUsers({
+    queryKey: ['users', page, debouncedSearch, statusFilter, roleFilter],
+    queryFn: async () => {
+      const filters: any = {
         page,
         search: debouncedSearch || undefined,
         page_size: USERS_PAGE_SIZE,
         estado: estadoFilter,
         incluir_inactivos: includeInactive,
-      }),
+      };
+      if (roleFilter !== '') {
+        filters.rol_id = roleFilter;
+      }
+      console.log('Filtros enviados a getUsers:', filters);
+      return getUsers(filters);
+    },
     placeholderData: (previousData) => previousData,
   });
 
@@ -82,7 +83,7 @@ export default function UsersList() {
   const disableNext = users.length < pageSize || isFetching;
 
   const deactivateMutation = useMutation({
-    mutationFn: async (id: number) => deleteUser(id),
+    mutationFn: async (id: number) => deactivateUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setFeedback({
@@ -95,8 +96,8 @@ export default function UsersList() {
     },
   });
 
-  const restoreMutation = useMutation({
-    mutationFn: async (id: number) => restoreUser(id),
+  const activateMutation = useMutation({
+    mutationFn: async (id: number) => activateUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setFeedback({ type: 'success', message: 'Registro restaurado y activo.' });
@@ -107,19 +108,35 @@ export default function UsersList() {
   });
 
   const handleDeactivate = (id: number) => {
-    const confirmed = window.confirm(
-      '¿Desactivar registro? Este registro no se eliminará y podrás restaurarlo desde “Mostrar inactivos”.',
-    );
-    if (!confirmed) {
-      return;
-    }
-    setFeedback(null);
-    deactivateMutation.mutate(id);
+    setConfirmDeactivateId(id);
   };
 
-  const handleRestore = (id: number) => {
-    setFeedback(null);
-    restoreMutation.mutate(id);
+  const handleActivate = (id: number) => {
+    setConfirmRestoreId(id);
+  };
+
+  const handleConfirmDeactivate = () => {
+    if (confirmDeactivateId !== null) {
+      setFeedback(null);
+      deactivateMutation.mutate(confirmDeactivateId);
+      setConfirmDeactivateId(null);
+    }
+  };
+
+  const handleCancelDeactivate = () => {
+    setConfirmDeactivateId(null);
+  };
+
+  const handleConfirmRestore = () => {
+    if (confirmRestoreId !== null) {
+      setFeedback(null);
+      activateMutation.mutate(confirmRestoreId);
+      setConfirmRestoreId(null);
+    }
+  };
+
+  const handleCancelRestore = () => {
+    setConfirmRestoreId(null);
   };
 
   return (
@@ -131,7 +148,7 @@ export default function UsersList() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="users-search">
             Buscar
@@ -144,40 +161,46 @@ export default function UsersList() {
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              className="rounded border-gray-300"
-              checked={showInactive}
-              onChange={(event) => {
-                setShowInactive(event.target.checked);
-                setPage(1);
-              }}
-            />
-            Mostrar inactivos
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="users-status-filter">
+            Estado
           </label>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="users-status-filter">
-              Estado
-            </label>
-            <select
-              id="users-status-filter"
-              className="border rounded px-3 py-2 w-full"
-              value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value as StatusFilterOption);
-                setPage(1);
-              }}
-              disabled={!showInactive}
-            >
-              {(['TODOS', 'ACTIVO', 'INACTIVO'] as StatusFilterOption[]).map((option) => (
-                <option key={option} value={option}>
-                  {STATUS_LABELS[option]}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            id="users-status-filter"
+            className="border rounded px-3 py-2 w-full"
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as StatusFilterOption);
+              setPage(1);
+            }}
+          >
+            {(['TODOS', 'ACTIVO', 'INACTIVO'] as StatusFilterOption[]).map((option) => (
+              <option key={option} value={option}>
+                {STATUS_LABELS[option]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="users-role-filter">
+            Rol
+          </label>
+          <select
+            id="users-role-filter"
+            className="border rounded px-3 py-2 w-full"
+            value={roleFilter}
+            onChange={(event) => {
+              const value = event.target.value;
+              setRoleFilter(value === '' ? '' : Number(value));
+              setPage(1);
+            }}
+            disabled={rolesQuery.isLoading}
+          >
+            <option value="">Todos los roles…</option>
+            {rolesQuery.data?.map((role) => (
+              <option key={role.id} value={role.id}>{role.nombre}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -209,9 +232,7 @@ export default function UsersList() {
                 <th className="py-2">Usuario</th>
                 <th>Rol</th>
                 <th>Persona</th>
-                <th>Correo</th>
                 <th>Estado</th>
-                <th>Desactivado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -222,23 +243,15 @@ export default function UsersList() {
                   : user.name ?? '-';
                 const status = resolveStatus({ estado: user.estado ?? undefined, activo: user.activo });
                 const isInactive = status.isActive === false;
-                const deletedAt = user.eliminado_en ? formatDateTime(user.eliminado_en) : '—';
+                // Eliminado deletedAt, ya no se usa
 
                 return (
                   <tr key={user.id} className="border-b last:border-0">
                     <td className="py-2">{user.username}</td>
                     <td>{formatRoleLabel(user)}</td>
                     <td>{personaLabel}</td>
-                    <td>{user.email || '-'}</td>
                     <td>
                       <StatusBadge estado={user.estado ?? undefined} activo={user.activo ?? undefined} />
-                    </td>
-                    <td>
-                      {user.eliminado_en ? (
-                        <span title="fecha de desactivación">{deletedAt}</span>
-                      ) : (
-                        '—'
-                      )}
                     </td>
                     <td>
                       <div className="flex flex-wrap items-center gap-2">
@@ -254,24 +267,43 @@ export default function UsersList() {
                             Editar
                           </Link>
                         )}
-                        {isInactive && (
+                        {isInactive ? (
                           <button
                             type="button"
                             className="text-sm text-green-600 hover:underline disabled:opacity-50"
-                            onClick={() => handleRestore(user.id)}
-                            disabled={restoreMutation.isPending}
+                            onClick={() => handleActivate(user.id)}
+                            disabled={activateMutation.isPending}
                           >
                             Restaurar
                           </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-sm text-red-600 hover:underline disabled:opacity-50"
+                            onClick={() => handleDeactivate(user.id)}
+                            disabled={deactivateMutation.isPending}
+                          >
+                            Desactivar
+                          </button>
                         )}
-                        <button
-                          type="button"
-                          className="text-sm text-red-600 hover:underline disabled:opacity-50"
-                          onClick={() => handleDeactivate(user.id)}
-                          disabled={deactivateMutation.isPending}
-                        >
-                          Desactivar
-                        </button>
+      <ConfirmModal
+        open={confirmDeactivateId !== null}
+        title="Desactivar usuario"
+        message="¿Desactivar registro? Este registro no se eliminará y podrás restaurarlo desde el filtro de estado."
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmDeactivate}
+        onCancel={handleCancelDeactivate}
+      />
+      <ConfirmModal
+        open={confirmRestoreId !== null}
+        title="Restaurar usuario"
+        message="¿Restaurar este usuario? El registro volverá a estar activo."
+        confirmText="Restaurar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmRestore}
+        onCancel={handleCancelRestore}
+      />
                       </div>
                     </td>
                   </tr>

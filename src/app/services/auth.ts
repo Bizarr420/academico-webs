@@ -225,7 +225,14 @@ export const authLogin = async (username: string, password: string) => {
     withCredentials: true,
   });
 
-  rememberSessionToken(response?.data);
+  // Extrae siempre el access_token
+  const token = response?.data?.access_token;
+  if (token) {
+    // Guarda el token en session_token para el resto de la app
+    localStorage.setItem('session_token', token);
+  }
+  // Mantén la compatibilidad con el resto del flujo
+  rememberSessionToken(token);
 };
 
 export const authLogout = async () => {

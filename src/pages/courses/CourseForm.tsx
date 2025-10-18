@@ -5,33 +5,39 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { createCourse, getCourse, updateCourse } from '@/app/services/courses';
+import { createCourseParallel } from '@/app/services/parallels';
 import { getAllLevels } from '@/app/services/levels';
 import type { CoursePayload, Level } from '@/app/types';
 
 const courseSchema = z.object({
   nombre: z.string().min(2, 'Ingresa el nombre del curso'),
-  etiqueta: z.string().min(1, 'Ingresa la etiqueta del curso'),
   nivel_id: z.number().int().positive('Selecciona un nivel'),
-  grado: z.number().int('Ingresa un grado válido').min(0, 'Ingresa un grado válido').optional(),
 });
 
 type CourseFormState = {
   nombre: string;
-  etiqueta: string;
   nivelId: string;
-  grado: string;
+  paraleloNombre: string;
 };
 
-type FieldErrors = Partial<Record<'nombre' | 'etiqueta' | 'nivel_id' | 'grado', string>>;
+type FieldErrors = {
+  nombre?: string;
+  nivel_id?: string;
+  paraleloNombre?: string;
+};
 
 const initialValues: CourseFormState = {
   nombre: '',
-  etiqueta: '',
   nivelId: '',
-  grado: '',
+  paraleloNombre: '',
 };
 
-export default function CourseForm() {
+type CourseFormProps = {
+  onCancel?: () => void;
+  onCreated?: () => void;
+};
+
+export default function CourseForm({ onCancel, onCreated }: CourseFormProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { courseId } = useParams();
@@ -53,15 +59,11 @@ export default function CourseForm() {
 
   useEffect(() => {
     if (courseQuery.data) {
-      setForm({
-        nombre: courseQuery.data.nombre,
-        etiqueta: courseQuery.data.etiqueta ?? '',
-        nivelId: courseQuery.data.nivel_id != null ? courseQuery.data.nivel_id.toString() : '',
-        grado:
-          courseQuery.data.grado !== undefined && courseQuery.data.grado !== null
-            ? courseQuery.data.grado.toString()
-            : '',
-      });
+      setForm((prev) => ({
+        ...prev,
+        nombre: courseQuery.data ? courseQuery.data.nombre : '',
+        nivelId: courseQuery.data && courseQuery.data.nivel_id != null ? courseQuery.data.nivel_id.toString() : '',
+      }));
     }
   }, [courseQuery.data]);
 
@@ -85,7 +87,7 @@ export default function CourseForm() {
     },
   });
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError('');
 
@@ -94,37 +96,27 @@ export default function CourseForm() {
       setFieldErrors((previous) => ({ ...previous, nivel_id: 'Selecciona un nivel' }));
       return;
     }
-
-    const trimmedGrado = form.grado.trim();
-    let gradoValue: number | undefined;
-    if (trimmedGrado) {
-      const parsedGrado = Number(trimmedGrado);
-      if (!Number.isInteger(parsedGrado) || parsedGrado < 0) {
-        setFieldErrors((previous) => ({ ...previous, grado: 'Ingresa un grado válido' }));
-        return;
-      }
-      gradoValue = parsedGrado;
+    if (!form.paraleloNombre.trim()) {
+      setFieldErrors((previous) => ({ ...previous, paraleloNombre: 'Ingresa el nombre del paralelo' }));
+      return;
     }
-
     const result = courseSchema.safeParse({
       nombre: form.nombre.trim(),
-      etiqueta: form.etiqueta.trim(),
       nivel_id: nivelIdNumber,
-      grado: gradoValue,
     });
+
+    // Construir el payload completo para CoursePayload
+    const payload: CoursePayload = {
+      nombre: form.nombre.trim(),
+      nivel_id: nivelIdNumber,
+    };
 
     if (!result.success) {
       const newErrors: FieldErrors = {};
       for (const issue of result.error.issues) {
         const field = issue.path[0];
-        if (typeof field === 'string') {
-          const targetField =
-            field === 'nivel_id' || field === 'nombre' || field === 'etiqueta' || field === 'grado'
-              ? field
-              : null;
-          if (targetField && !newErrors[targetField as keyof FieldErrors]) {
-            newErrors[targetField as keyof FieldErrors] = issue.message;
-          }
+        if (field === 'nombre' || field === 'nivel_id') {
+          newErrors[field] = issue.message;
         }
       }
       setFieldErrors(newErrors);
@@ -132,17 +124,26 @@ export default function CourseForm() {
     }
 
     setFieldErrors({});
-    mutation.mutate(result.data);
+    // Crear curso y paralelo obligatoriamente
+    try {
+      const createdCourse = await mutation.mutateAsync(payload);
+      if (!courseId && createdCourse && createdCourse.id) {
+        await createCourseParallel(createdCourse.id, form.paraleloNombre.trim());
+        if (onCreated) onCreated();
+      }
+    } catch (error) {
+      // El manejo de error ya está en mutation.onError
+    }
   };
 
   const updateField = (field: keyof CourseFormState) => (value: string) => {
     setFieldErrors((previous) => {
       const targetField = field === 'nivelId' ? 'nivel_id' : field;
-      if (!previous[targetField as keyof FieldErrors]) {
+      if (!previous[targetField]) {
         return previous;
       }
       const next = { ...previous };
-      delete next[targetField as keyof FieldErrors];
+      delete next[targetField];
       return next;
     });
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -176,18 +177,6 @@ export default function CourseForm() {
           {fieldErrors.nombre && <p className="text-sm text-red-600 mt-1">{fieldErrors.nombre}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-600" htmlFor="course-etiqueta">
-            Etiqueta
-          </label>
-          <input
-            id="course-etiqueta"
-            className="w-full border rounded px-3 py-2"
-            value={form.etiqueta}
-            onChange={(event) => updateField('etiqueta')(event.target.value)}
-          />
-          {fieldErrors.etiqueta && <p className="text-sm text-red-600 mt-1">{fieldErrors.etiqueta}</p>}
-        </div>
-        <div>
           <label className="block text-sm font-medium text-gray-600" htmlFor="course-nivel">
             Nivel
           </label>
@@ -199,14 +188,13 @@ export default function CourseForm() {
             disabled={levelsQuery.isLoading}
           >
             <option value="">Selecciona un nivel</option>
-            {levels.map((level: Level) => {
-              const label = level.etiqueta ? `${level.nombre} (${level.etiqueta})` : level.nombre;
-              return (
+            {levels
+              .filter((level: Level) => level.nombre.toLowerCase().includes('secundaria'))
+              .map((level: Level) => (
                 <option key={level.id} value={level.id}>
-                  {label}
+                  {level.nombre}
                 </option>
-              );
-            })}
+              ))}
           </select>
           {levelsQuery.isError && (
             <p className="text-sm text-red-600 mt-1">No se pudieron cargar los niveles.</p>
@@ -216,26 +204,36 @@ export default function CourseForm() {
           )}
           {fieldErrors.nivel_id && <p className="text-sm text-red-600 mt-1">{fieldErrors.nivel_id}</p>}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-600" htmlFor="course-grado">
-            Grado (opcional)
-          </label>
-          <input
-            id="course-grado"
-            type="number"
-            className="w-full border rounded px-3 py-2"
-            value={form.grado}
-            onChange={(event) => updateField('grado')(event.target.value)}
-            min={0}
-          />
-          {fieldErrors.grado && <p className="text-sm text-red-600 mt-1">{fieldErrors.grado}</p>}
-        </div>
+        {/* Paralelo obligatorio */}
+        {!isEditing && (
+          <div className="border rounded p-3 bg-gray-50 mt-2">
+            <label className="block text-sm font-medium text-gray-600" htmlFor="paralelo-nombre">
+              Nombre del paralelo
+            </label>
+            <input
+              id="paralelo-nombre"
+              className="w-full border rounded px-3 py-2"
+              value={form.paraleloNombre}
+              onChange={(event) => updateField('paraleloNombre')(event.target.value)}
+            />
+            {fieldErrors.paraleloNombre && <p className="text-sm text-red-600 mt-1">{fieldErrors.paraleloNombre}</p>}
+          </div>
+        )}
         {submitError && <p className="text-red-600 text-sm">{submitError}</p>}
-        <div className="flex gap-2 justify-end">
-          <button type="button" className="px-3 py-2 border rounded" onClick={() => navigate(-1)}>
+        <div className="flex gap-2 justify-end mt-6 bg-gray-50 p-4 rounded-b-xl border-t">
+          <button
+            type="button"
+            className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition"
+            onClick={onCancel}
+            disabled={mutation.isPending}
+          >
             Cancelar
           </button>
-          <button className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50" disabled={mutation.isPending}>
+          <button
+            type="submit"
+            className="px-4 py-2 rounded bg-gray-900 text-white disabled:opacity-50"
+            disabled={mutation.isPending}
+          >
             {mutation.isPending ? 'Guardando…' : 'Guardar'}
           </button>
         </div>

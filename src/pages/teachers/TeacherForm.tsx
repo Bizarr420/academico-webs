@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { getAllSubjects } from '@/app/services/subjects';
+import { getAllCourses } from '@/app/services/courses';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -33,6 +35,8 @@ type TeacherFormState = {
   titulo: string;
   profesion: string;
   persona: PersonFormState;
+  materia_id?: number | null;
+  curso_ids?: number[];
 };
 
 type PersonFieldErrors = Partial<Record<keyof PersonFormState, string>>;
@@ -69,7 +73,7 @@ const teacherSchema = z.object({
 const createEmptyPerson = (): PersonFormState => ({
   nombres: '',
   apellidos: '',
-  sexo: '',
+  sexo: 'M',
   fecha_nacimiento: '',
   celular: '',
   direccion: '',
@@ -82,6 +86,8 @@ const createInitialFormState = (): TeacherFormState => ({
   titulo: '',
   profesion: '',
   persona: createEmptyPerson(),
+  materia_id: null,
+  curso_ids: [],
 });
 
 const extractErrorDetail = (value: unknown): string => {
@@ -148,6 +154,8 @@ const updateTeacherCollections = (
 };
 
 export default function TeacherForm() {
+  const [materias, setMaterias] = useState<import('@/app/types').Subject[]>([]);
+  const [cursos, setCursos] = useState<import('@/app/types').Course[]>([]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { teacherId } = useParams();
@@ -174,7 +182,10 @@ export default function TeacherForm() {
       persona: {
         nombres: persona?.nombres ?? '',
         apellidos: persona?.apellidos ?? '',
-        sexo: persona?.sexo ?? '',
+        sexo:
+          persona?.sexo === 'M' || persona?.sexo === 'F' || persona?.sexo === 'X'
+            ? (persona.sexo as 'M' | 'F' | 'X')
+            : '',
         fecha_nacimiento: fechaNacimiento ? fechaNacimiento.slice(0, 10) : '',
         celular: persona?.celular ?? '',
         direccion: persona?.direccion ?? '',
@@ -182,9 +193,23 @@ export default function TeacherForm() {
         ci_complemento: persona?.ci_complemento ?? '',
         ci_expedicion: persona?.ci_expedicion ?? '',
       },
+      materia_id: teacher.materias && teacher.materias.length > 0 ? teacher.materias[0].id : null,
+      curso_ids: teacher.cursos ? teacher.cursos.map(c => c.id) : [],
     });
     setOriginalTeacher(teacher);
   };
+
+  useEffect(() => {
+    // Cargar materias y cursos activos
+    (async () => {
+      const [materiasData, cursosData] = await Promise.all([
+        getAllSubjects(),
+        getAllCourses(),
+      ]);
+      setMaterias(materiasData);
+      setCursos(cursosData);
+    })();
+  }, []);
 
   useEffect(() => {
     if (teacherQuery.data) {
@@ -317,22 +342,28 @@ export default function TeacherForm() {
     }
 
     const personaInput = {
-      nombres: form.persona.nombres.trim(),
-      apellidos: form.persona.apellidos.trim(),
-      sexo: form.persona.sexo,
-      fecha_nacimiento: form.persona.fecha_nacimiento,
-      celular: form.persona.celular.trim(),
-      direccion: form.persona.direccion.trim() || undefined,
-      ci_numero: form.persona.ci_numero.trim() || undefined,
-      ci_complemento: form.persona.ci_complemento.trim() || undefined,
-      ci_expedicion: form.persona.ci_expedicion.trim() || undefined,
+    nombres: form.persona.nombres.trim(),
+    apellidos: form.persona.apellidos.trim(),
+    sexo: form.persona.sexo === '' ? 'M' : form.persona.sexo,
+    fecha_nacimiento: form.persona.fecha_nacimiento,
+    celular: form.persona.celular.trim(),
+    direccion: form.persona.direccion.trim() || undefined,
+    ci_numero: form.persona.ci_numero.trim() || undefined,
+    ci_complemento: form.persona.ci_complemento.trim() || undefined,
+    ci_expedicion: form.persona.ci_expedicion.trim() || undefined,
     };
 
-    const payloadInput = {
+    const payloadInput: TeacherPayload & { materia_id?: number | null; curso_ids?: number[] } = {
       persona: personaInput,
       titulo: form.titulo,
       profesion: form.profesion,
     };
+    if (form.materia_id) {
+      payloadInput.materia_id = form.materia_id;
+    }
+    if (form.curso_ids && form.curso_ids.length > 0) {
+      payloadInput.curso_ids = form.curso_ids;
+    }
 
     const result = teacherSchema.safeParse(payloadInput);
 
@@ -530,6 +561,49 @@ export default function TeacherForm() {
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-materia">
+            Materia (opcional)
+          </label>
+          <select
+            id="teacher-materia"
+            className="w-full border rounded px-3 py-2"
+            value={form.materia_id ?? ''}
+            onChange={e => setForm(f => ({ ...f, materia_id: e.target.value ? Number(e.target.value) : null }))}
+          >
+            <option value="">Sin asignar</option>
+            {materias.map(m => (
+              <option key={m.id} value={m.id}>{m.nombre}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600" htmlFor="teacher-cursos">
+            Cursos (opcional, puedes seleccionar varios)
+          </label>
+          <div className="flex flex-col gap-2">
+            {cursos.map(curso => (
+              <label key={curso.id} className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  value={curso.id}
+                  checked={form.curso_ids?.includes(curso.id) ?? false}
+                  onChange={e => {
+                    setForm(f => {
+                      const ids = f.curso_ids ?? [];
+                      if (e.target.checked) {
+                        return { ...f, curso_ids: [...ids, curso.id] };
+                      } else {
+                        return { ...f, curso_ids: ids.filter(id => id !== curso.id) };
+                      }
+                    });
+                  }}
+                />
+                {curso.nombre}
+              </label>
+            ))}
+          </div>
+        </div>
           <span className="block text-sm font-medium text-gray-600">Datos de la persona</span>
           <div className="mt-3 space-y-4">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

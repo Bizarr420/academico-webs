@@ -181,13 +181,6 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       }
     });
 
-    return () => {
-      active = false;
-      clearFallbackTimeout();
-      hasInitializedRef.current = false;
-    };
-  }, [persistUser, refreshUser]);
-
   const logout = useCallback(async () => {
     try {
       await authLogout();

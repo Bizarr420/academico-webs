@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { isAxiosError } from 'axios';
 
-import { createStudent, getStudent, restoreStudent, updateStudent } from '@/app/services/students';
+import { createStudent, getStudent, updateStudent, setStudentStatus } from '@/app/services/students';
 import { updatePerson } from '@/app/services/people';
 import {
   SEX_CODES,
@@ -73,8 +73,7 @@ const personSchema = z.object({
     .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/u, 'Ingresa una fecha válida (YYYY-MM-DD)'),
   celular: z
     .string()
-    .min(1, 'Ingresa el celular')
-    .max(20, 'Máximo 20 caracteres'),
+    .regex(/^([6-7][0-9]{7})$/, 'El celular debe estar entre 60000000 y 79999999'),
   direccion: z.string().max(255, 'Máximo 255 caracteres').optional(),
   ci_numero: z.string().max(20, 'Máximo 20 caracteres').optional(),
   ci_complemento: z.string().max(5, 'Máximo 5 caracteres').optional(),
@@ -95,13 +94,13 @@ const createEmptyPerson = (): PersonFormState => ({
   direccion: '',
   ci_numero: '',
   ci_complemento: '',
-  ci_expedicion: '',
+  ci_expedicion: 'LP',
 });
 
 const createInitialFormState = (): StudentFormState => ({
   codigo_rude: '',
   anio_ingreso: String(new Date().getFullYear()),
-  situacion: '',
+  situacion: 'REGULAR',
   estado: '',
   persona: createEmptyPerson(),
 });
@@ -198,7 +197,10 @@ export default function StudentForm() {
       persona: {
         nombres: persona?.nombres ?? '',
         apellidos: persona?.apellidos ?? '',
-        sexo: persona?.sexo ?? '',
+        sexo:
+          persona?.sexo && ['M', 'F', 'X'].includes(persona.sexo as string)
+            ? (persona.sexo as Sexo)
+            : '',
         fecha_nacimiento: fechaNacimiento ? fechaNacimiento.slice(0, 10) : '',
         celular: persona?.celular ?? '',
         direccion: persona?.direccion ?? '',
@@ -226,7 +228,7 @@ export default function StudentForm() {
   const isInactive = studentStatus?.isActive === false;
 
   const restoreMutation = useMutation({
-    mutationFn: async (id: number) => restoreStudent(id),
+  mutationFn: async (id: number) => setStudentStatus(id, 'ACTIVO'),
     onSuccess: (student) => {
       updateStudentCollections(queryClient, student);
       syncFormWithStudent(student);
@@ -708,8 +710,12 @@ export default function StudentForm() {
                 <input
                   id="student-person-celular"
                   className="w-full rounded border px-3 py-2"
+                  type="number"
+                  min="60000000"
+                  max="79999999"
                   value={form.persona.celular}
                   onChange={(event) => updatePersonaField('celular')(event.target.value)}
+                  placeholder="Ej: 71234567"
                 />
                 {fieldErrors.persona?.celular && (
                   <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.celular}</p>
@@ -763,12 +769,18 @@ export default function StudentForm() {
                 <label className="block text-sm font-medium text-gray-600" htmlFor="student-person-ci-expedicion">
                   Expedición
                 </label>
-                <input
+                <select
                   id="student-person-ci-expedicion"
                   className="w-full rounded border px-3 py-2"
                   value={form.persona.ci_expedicion}
                   onChange={(event) => updatePersonaField('ci_expedicion')(event.target.value)}
-                />
+                >
+                  {["LP", "CB", "SC", "OR", "PT", "CH", "TJ", "BN", "PN"].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
                 {fieldErrors.persona?.ci_expedicion && (
                   <p className="mt-1 text-sm text-red-600">{fieldErrors.persona.ci_expedicion}</p>
                 )}
